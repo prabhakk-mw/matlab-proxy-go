@@ -5,10 +5,10 @@ Known gaps and planned improvements for matlab-proxy-go.
 ## High Priority
 
 ### Testing
-- [ ] Unit tests for `internal/auth` — token generation, validation, middleware, stale cookie expiry
-- [ ] Unit tests for `internal/config` — env var parsing, MATLAB discovery, SSL cert generation
+- [x] Unit tests for `internal/auth` — token generation, validation, middleware, stale cookie expiry
+- [x] Unit tests for `internal/config` — env var parsing (MATLAB discovery and SSL cert generation still TODO)
 - [ ] Unit tests for `internal/licensing` — all three license types, MHLM API mocking, persistence, cache restore with expiry validation
-- [ ] Unit tests for `internal/session` — concurrency control (active client expiry, transfer, clear), idle timeout countdown
+- [x] Unit tests for `internal/session` — concurrency control (active client expiry, transfer, clear), idle timeout countdown
 - [ ] Unit tests for `internal/matlab` — state transitions, EC communication mocking, session file cleanup
 - [ ] Integration tests — start server, hit API endpoints, verify responses
 - [ ] WebSocket proxy tests — bidirectional message forwarding, error handling
@@ -71,8 +71,8 @@ Known gaps and planned improvements for matlab-proxy-go.
 - [ ] Graceful drain on shutdown — wait for in-flight WebSocket messages before closing
 
 ### Packaging
-- [ ] GitHub Actions CI pipeline — build, test, vet, lint for Linux/macOS/Windows
-- [ ] GoReleaser configuration for automated binary releases
+- [x] GitHub Actions CI pipeline — build, test, vet, lint for Linux/macOS/Windows
+- [x] GitHub Actions release pipeline — cross-compile and upload binaries on tag push
 - [ ] Homebrew formula for macOS
 - [ ] Systemd unit file for Linux
 - [ ] Dockerfile with multi-stage build published to a container registry
