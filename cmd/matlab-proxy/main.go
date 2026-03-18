@@ -12,6 +12,7 @@ import (
 
 	"github.com/mathworks/matlab-proxy-go/internal/config"
 	"github.com/mathworks/matlab-proxy-go/internal/listservers"
+	mwilog "github.com/mathworks/matlab-proxy-go/internal/logging"
 	"github.com/mathworks/matlab-proxy-go/internal/server"
 	"github.com/mathworks/matlab-proxy-go/internal/version"
 )
@@ -53,9 +54,9 @@ func main() {
 			os.Exit(1)
 		}
 		defer f.Close()
-		handler = slog.NewTextHandler(f, &slog.HandlerOptions{Level: logLevel})
+		handler = mwilog.NewFileHandler(f, logLevel)
 	} else {
-		handler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
+		handler = mwilog.NewConsoleHandler(logLevel)
 	}
 	logger := slog.New(handler)
 

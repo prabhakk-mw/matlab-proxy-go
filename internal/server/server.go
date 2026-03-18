@@ -115,7 +115,12 @@ func (s *Server) Start(ctx context.Context) error {
 		"access_url", accessURL,
 		"port", s.cfg.Port,
 	)
-	fmt.Printf("\nAccess MATLAB at: %s\n\n", accessURL)
+	fmt.Println()
+	fmt.Println("==========================================================================")
+	fmt.Println("                          Access MATLAB at:")
+	fmt.Printf("  %s\n", accessURL)
+	fmt.Println("==========================================================================")
+	fmt.Println()
 
 	// Write server info file for discovery by list-servers
 	if err := s.writeServerInfoFile(); err != nil {
