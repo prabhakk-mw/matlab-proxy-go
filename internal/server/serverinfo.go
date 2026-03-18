@@ -5,6 +5,7 @@ package server
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // writeServerInfoFile creates the mwi_server.info file that allows
@@ -19,7 +20,16 @@ func (s *Server) writeServerInfoFile() error {
 	infoFile := filepath.Join(logsDir, "mwi_server.info")
 
 	accessURL := s.auth.AccessURL(s.cfg.ServerURL())
-	content := accessURL + "\n" + s.cfg.SessionName + "\n"
+
+	// Title format: "<session_name> - MATLAB <version>"
+	// This is parsed by extractVersionAndSession in the --list command.
+	// When SessionName is the auto-generated default (e.g., "MATLAB R2025b"),
+	// avoid duplicating it as "MATLAB R2025b - MATLAB R2025b".
+	title := s.cfg.SessionName
+	if s.cfg.MATLABVersion != "" && !strings.Contains(title, "MATLAB") {
+		title += " - MATLAB " + s.cfg.MATLABVersion
+	}
+	content := accessURL + "\n" + title + "\n"
 
 	s.logger.Info("writing server info file", "path", infoFile)
 	return os.WriteFile(infoFile, []byte(content), 0600)
