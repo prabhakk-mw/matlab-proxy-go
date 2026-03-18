@@ -54,13 +54,13 @@ This downloads the source, compiles it, and places the binary in `$GOPATH/bin` (
 ```bash
 git clone https://github.com/mathworks/matlab-proxy-go.git
 cd matlab-proxy-go
-go build -ldflags "-s -w" -o matlab-proxy ./cmd/matlab-proxy/
+go build -ldflags "-s -w" -o bin/matlab-proxy ./cmd/matlab-proxy/
 ```
 
-This produces a single binary that includes all functionality:
-- `./matlab-proxy` — start the server
-- `./matlab-proxy --list` — list running servers
-- `./matlab-proxy --version` — print version
+This produces a single binary in `bin/` that includes all functionality:
+- `./bin/matlab-proxy` — start the server
+- `./bin/matlab-proxy --list` — list running servers
+- `./bin/matlab-proxy --version` — print version
 
 ## Cross-Compilation
 
@@ -68,19 +68,19 @@ Go makes it straightforward to build for any supported platform:
 
 ```bash
 # Linux (amd64)
-GOOS=linux GOARCH=amd64 go build -o matlab-proxy-linux-amd64 ./cmd/matlab-proxy/
+GOOS=linux GOARCH=amd64 go build -o bin/matlab-proxy-linux-amd64 ./cmd/matlab-proxy/
 
 # Linux (arm64)
-GOOS=linux GOARCH=arm64 go build -o matlab-proxy-linux-arm64 ./cmd/matlab-proxy/
+GOOS=linux GOARCH=arm64 go build -o bin/matlab-proxy-linux-arm64 ./cmd/matlab-proxy/
 
 # macOS (Apple Silicon)
-GOOS=darwin GOARCH=arm64 go build -o matlab-proxy-darwin-arm64 ./cmd/matlab-proxy/
+GOOS=darwin GOARCH=arm64 go build -o bin/matlab-proxy-darwin-arm64 ./cmd/matlab-proxy/
 
 # macOS (Intel)
-GOOS=darwin GOARCH=amd64 go build -o matlab-proxy-darwin-amd64 ./cmd/matlab-proxy/
+GOOS=darwin GOARCH=amd64 go build -o bin/matlab-proxy-darwin-amd64 ./cmd/matlab-proxy/
 
 # Windows
-GOOS=windows GOARCH=amd64 go build -o matlab-proxy.exe ./cmd/matlab-proxy/
+GOOS=windows GOARCH=amd64 go build -o bin/matlab-proxy.exe ./cmd/matlab-proxy/
 ```
 
 ## Docker
@@ -138,11 +138,11 @@ ENTRYPOINT ["/matlab-proxy"]
 
 ```bash
 # Check the binary runs
-./matlab-proxy --version
-./matlab-proxy --help
+./bin/matlab-proxy --version
+./bin/matlab-proxy --help
 
 # List running servers (should show none initially)
-./matlab-proxy --list
+./bin/matlab-proxy --list
 ```
 
 ## System Dependencies

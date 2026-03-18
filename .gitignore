@@ -1,7 +1,5 @@
 # Compiled binaries
-/matlab-proxy
-/matlab-proxy.exe
-*.exe
+/bin/
 *.dll
 *.so
 *.dylib

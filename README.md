@@ -20,10 +20,10 @@ Download a pre-built binary from the [Releases](https://github.com/prabhakk-mw/m
 ```bash
 git clone https://github.com/prabhakk-mw/matlab-proxy-go.git
 cd matlab-proxy-go
-go build -ldflags "-s -w" -o matlab-proxy ./cmd/matlab-proxy/
+go build -ldflags "-s -w" -o bin/matlab-proxy ./cmd/matlab-proxy/
 
 # Run (MATLAB must be on PATH or set MWI_CUSTOM_MATLAB_ROOT)
-./matlab-proxy
+./bin/matlab-proxy
 ```
 
 The server prints an access URL on startup. Open it in your browser.

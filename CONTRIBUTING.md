@@ -34,16 +34,16 @@ There is no need to change the Go module path — it stays as `github.com/mathwo
 ## Building
 
 ```bash
-go build -ldflags "-s -w" -o matlab-proxy ./cmd/matlab-proxy
+go build -ldflags "-s -w" -o bin/matlab-proxy ./cmd/matlab-proxy
 ```
 
-This produces a single binary with all assets (templates, CSS, JS) embedded. There is no separate frontend build step.
+This produces a single binary in `bin/` with all assets (templates, CSS, JS) embedded. There is no separate frontend build step. The `bin/` directory is gitignored.
 
 Verify it works:
 
 ```bash
-./matlab-proxy --version
-./matlab-proxy --help
+./bin/matlab-proxy --version
+./bin/matlab-proxy --help
 ```
 
 A local build reports `0.0.0-dev` as the version. Release versions are injected at build time by the CI pipeline.
@@ -52,13 +52,13 @@ A local build reports `0.0.0-dev` as the version. Release versions are injected 
 
 ```bash
 # MATLAB must be on PATH, or set MWI_CUSTOM_MATLAB_ROOT
-./matlab-proxy
+./bin/matlab-proxy
 
 # With debug logging
-MWI_LOG_LEVEL=DEBUG ./matlab-proxy
+MWI_LOG_LEVEL=DEBUG ./bin/matlab-proxy
 
 # With a fixed port
-MWI_APP_PORT=8080 ./matlab-proxy
+MWI_APP_PORT=8080 ./bin/matlab-proxy
 ```
 
 See [docs/usage.md](docs/usage.md) for the full list of environment variables.
@@ -146,9 +146,9 @@ Both must pass before a PR can be merged.
 To build for a different platform:
 
 ```bash
-GOOS=linux   GOARCH=amd64 go build -o matlab-proxy-linux   ./cmd/matlab-proxy
-GOOS=darwin  GOARCH=arm64 go build -o matlab-proxy-macos   ./cmd/matlab-proxy
-GOOS=windows GOARCH=amd64 go build -o matlab-proxy.exe     ./cmd/matlab-proxy
+GOOS=linux   GOARCH=amd64 go build -o bin/matlab-proxy-linux   ./cmd/matlab-proxy
+GOOS=darwin  GOARCH=arm64 go build -o bin/matlab-proxy-macos   ./cmd/matlab-proxy
+GOOS=windows GOARCH=amd64 go build -o bin/matlab-proxy.exe     ./cmd/matlab-proxy
 ```
 
 ## Documentation
