@@ -40,7 +40,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           EXT=""
           if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
-          go build -ldflags "-X github.com/mathworks/matlab-proxy-go/internal/version.Version=${VERSION}" \
+          go build -ldflags "-s -w -X github.com/mathworks/matlab-proxy-go/internal/version.Version=${VERSION}" \
             -o "matlab-proxy${EXT}" ./cmd/matlab-proxy
 
       - name: Package (tar.gz)

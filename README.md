@@ -20,7 +20,7 @@ Download a pre-built binary from the [Releases](https://github.com/prabhakk-mw/m
 ```bash
 git clone https://github.com/prabhakk-mw/matlab-proxy-go.git
 cd matlab-proxy-go
-go build -o matlab-proxy ./cmd/matlab-proxy/
+go build -ldflags "-s -w" -o matlab-proxy ./cmd/matlab-proxy/
 
 # Run (MATLAB must be on PATH or set MWI_CUSTOM_MATLAB_ROOT)
 ./matlab-proxy
@@ -45,7 +45,7 @@ The server prints an access URL on startup. Open it in your browser.
 This Go rewrite may be a better fit than the original [matlab-proxy](https://github.com/mathworks/matlab-proxy) in the following scenarios:
 
 ### Single-binary deployment
-The Go version compiles to a single ~14 MB binary with all assets embedded. There is no need to install Python, pip, Node.js, or npm. This is particularly useful for:
+The Go version compiles to a single ~10 MB binary with all assets embedded. There is no need to install Python, pip, Node.js, or npm. This is particularly useful for:
 - Minimal container images (scratch / distroless / Alpine)
 - Air-gapped environments where installing Python packages is difficult
 - Appliance-style deployments where you want one file to copy and run

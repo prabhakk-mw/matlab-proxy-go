@@ -116,7 +116,7 @@ The Go version cleans up `connector.securePort` and extracted MATLAB scripts whe
 |---|---|---|
 | Distribution | pip install (PyPI wheel) | Single binary |
 | Runtime deps | Python 3.8+, Node.js (for GUI build) | None |
-| Binary size | N/A (interpreted) | ~14 MB |
+| Binary size | N/A (interpreted) | ~10 MB |
 | Static assets | Served from filesystem | Embedded via `embed.FS` |
 
 ### Process management

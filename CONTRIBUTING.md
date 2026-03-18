@@ -34,7 +34,7 @@ There is no need to change the Go module path — it stays as `github.com/mathwo
 ## Building
 
 ```bash
-go build -o matlab-proxy ./cmd/matlab-proxy
+go build -ldflags "-s -w" -o matlab-proxy ./cmd/matlab-proxy
 ```
 
 This produces a single binary with all assets (templates, CSS, JS) embedded. There is no separate frontend build step.

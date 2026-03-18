@@ -54,7 +54,7 @@ This downloads the source, compiles it, and places the binary in `$GOPATH/bin` (
 ```bash
 git clone https://github.com/mathworks/matlab-proxy-go.git
 cd matlab-proxy-go
-go build -o matlab-proxy ./cmd/matlab-proxy/
+go build -ldflags "-s -w" -o matlab-proxy ./cmd/matlab-proxy/
 ```
 
 This produces a single binary that includes all functionality:
