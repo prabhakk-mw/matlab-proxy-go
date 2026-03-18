@@ -1,0 +1,30 @@
+# Compiled binaries
+matlab-proxy
+matlab-proxy.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test output
+*.test
+*.out
+coverage.html
+
+# Go workspace
+go.work
+go.work.sum
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+*.pem
+*.key

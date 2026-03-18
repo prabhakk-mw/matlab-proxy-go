@@ -1,0 +1,221 @@
+{{/* Copyright 2026 The MathWorks, Inc. */}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.SessionName}}</title>
+    <link rel="stylesheet" href="{{.PathPrefix}}/static/css/style.css">
+</head>
+<body>
+    <!-- MATLAB iframe (when running) -->
+    <div id="matlab-frame-container">
+        {{if and (eq .MATLABStatus "up") (not .AuthEnabled)}}
+        <iframe id="matlab-frame" src="{{.PathPrefix}}/index-jsd-cr.html" frameborder="0"></iframe>
+        {{else}}
+        <div id="matlab-placeholder">
+            <img src="{{.PathPrefix}}/static/icons/matlab-logo.svg" alt="MATLAB" class="placeholder-logo" onerror="this.style.display='none'">
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Draggable status trigger -->
+    <div id="trigger" class="trigger trigger-{{.MATLABStatus}}" draggable="true" title="MATLAB Status">
+        <span class="trigger-icon">M</span>
+    </div>
+
+    <!-- Overlay backdrop -->
+    <div id="overlay" class="overlay hidden" onclick="closeOverlay(event)">
+        <div class="overlay-content" onclick="event.stopPropagation()">
+            <!-- Dynamic content loaded via htmx or JS -->
+            <div id="overlay-body"></div>
+        </div>
+    </div>
+
+    <!-- Status Panel (default overlay content) -->
+    <template id="tmpl-status-panel">
+        <div class="panel">
+            <h2>MATLAB Status</h2>
+            <div class="status-section">
+                <div class="status-row">
+                    <span class="label">Status:</span>
+                    <span class="value status-badge status-{{.MATLABStatus}}">
+                        {{if eq .MATLABStatus "up"}}Running
+                        {{else if eq .MATLABStatus "starting"}}Starting...
+                        {{else if eq .MATLABStatus "down"}}Not Running
+                        {{else}}{{.MATLABStatus}}
+                        {{end}}
+                    </span>
+                </div>
+                {{if .MATLABVersion}}
+                <div class="status-row">
+                    <span class="label">Version:</span>
+                    <span class="value">{{.MATLABVersion}}</span>
+                </div>
+                {{end}}
+                {{if .BusyStatus}}
+                <div class="status-row">
+                    <span class="label">Activity:</span>
+                    <span class="value">{{.BusyStatus}}</span>
+                </div>
+                {{end}}
+                <div class="status-row">
+                    <span class="label">Licensing:</span>
+                    <span class="value licensing-info">
+                        {{if eq .LicensingType "mhlm"}}Online License ({{.LicensingEmail}})
+                        {{else if eq .LicensingType "nlm"}}Network License ({{.LicensingConnStr}})
+                        {{else if eq .LicensingType "existing_license"}}Existing License
+                        {{else}}Not Configured
+                        {{end}}
+                    </span>
+                </div>
+            </div>
+
+            {{if .ErrorMessage}}
+            <div class="error-section">
+                <div class="error-banner">{{.ErrorMessage}}</div>
+            </div>
+            {{end}}
+
+            {{if .Warnings}}
+            <div class="warning-section">
+                {{range .Warnings}}
+                <div class="warning-banner">{{.}}</div>
+                {{end}}
+            </div>
+            {{end}}
+
+            <div class="controls">
+                {{if eq .LicensingType ""}}
+                <button class="btn btn-primary" onclick="showLicensing()">Configure License</button>
+                {{else}}
+                    {{if ne .MATLABStatus "starting"}}
+                    <button class="btn btn-primary" onclick="startMatlab()">
+                        {{if eq .MATLABStatus "up"}}Restart MATLAB{{else}}Start MATLAB{{end}}
+                    </button>
+                    {{end}}
+                    {{if eq .MATLABStatus "up"}}
+                    <button class="btn btn-danger" onclick="stopMatlab()">Stop MATLAB</button>
+                    {{end}}
+                    <button class="btn btn-secondary" onclick="showLicensing()">Change License</button>
+                    <button class="btn btn-warning" onclick="removeLicense()">Sign Out</button>
+                {{end}}
+                {{if .ShowShutdownBtn}}
+                <button class="btn btn-danger" onclick="confirmShutdown()">Shutdown</button>
+                {{end}}
+            </div>
+        </div>
+    </template>
+
+    <!-- Licensing Panel -->
+    <template id="tmpl-licensing-panel">
+        <div class="panel">
+            <h2>Configure MATLAB License</h2>
+            <div class="tabs">
+                <button class="tab active" onclick="showTab(this, 'tab-existing')">Existing License</button>
+                <button class="tab" onclick="showTab(this, 'tab-nlm')">Network License</button>
+                <button class="tab" onclick="showTab(this, 'tab-mhlm')">Online License</button>
+            </div>
+
+            <div id="tab-existing" class="tab-content active">
+                <p>Use a MATLAB license that is already activated on this machine.</p>
+                <button class="btn btn-primary" onclick="setLicensing('existing_license', {})">Use Existing License</button>
+            </div>
+
+            <div id="tab-nlm" class="tab-content">
+                <p>Connect to a Network License Manager.</p>
+                <form onsubmit="event.preventDefault(); submitNLM()">
+                    <label for="nlm-conn">License Server Address (port@hostname):</label>
+                    <input type="text" id="nlm-conn" placeholder="27000@license-server" required>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+
+            <div id="tab-mhlm" class="tab-content">
+                <p>Sign in with your MathWorks account.</p>
+                <div id="mhlm-login">
+                    <iframe id="loginframe" title="MathWorks Embedded Login" src="{{.MHLMLoginURL}}" style="width:100%;height:400px;border:none;" onload="onMHLMIframeLoaded()"></iframe>
+                </div>
+            </div>
+
+            <div class="controls" style="margin-top:1rem">
+                <button class="btn btn-secondary" onclick="showStatusPanel()">Back</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Confirmation Dialog -->
+    <template id="tmpl-confirm">
+        <div class="panel panel-sm">
+            <h2 id="confirm-title">Confirm</h2>
+            <p id="confirm-message">Are you sure?</p>
+            <div class="controls">
+                <button class="btn btn-primary" id="confirm-yes">Yes</button>
+                <button class="btn btn-secondary" onclick="showStatusPanel()">Cancel</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Token Authentication -->
+    <template id="tmpl-auth">
+        <div class="panel panel-sm">
+            <h2>Authentication Required</h2>
+            <p>Enter the authentication token to access MATLAB.</p>
+            <form onsubmit="event.preventDefault(); submitAuthToken()">
+                <label for="auth-token-input">Token:</label>
+                <input type="text" id="auth-token-input" placeholder="Paste your token here" required autocomplete="off">
+                <div id="auth-error" class="error-banner" style="display:none"></div>
+                <button type="submit" class="btn btn-primary" style="margin-top:0.5rem">Submit</button>
+            </form>
+        </div>
+    </template>
+
+    <!-- Concurrent Session Dialog -->
+    <template id="tmpl-concurrent-session">
+        <div class="panel panel-sm">
+            <h2>MATLAB is Open Elsewhere</h2>
+            <p>MATLAB is currently open in another window or browser. It cannot be displayed in two places at the same time.</p>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="transferSession()">Open MATLAB Here</button>
+                <button class="btn btn-secondary" onclick="dismissConcurrentDialog()">Cancel</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Session Transferred Away Dialog -->
+    <template id="tmpl-session-transferred">
+        <div class="panel panel-sm">
+            <h2>Session Moved</h2>
+            <p>Your MATLAB session has been transferred to another window.</p>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="transferSession()">Reclaim Session</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Shutdown Warning -->
+    <template id="tmpl-shutdown-warning">
+        <div class="panel panel-sm">
+            <h2>Session Expiring</h2>
+            <p>Your session will shut down due to inactivity in <span id="shutdown-countdown">10</span> seconds.</p>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="resetIdleTimer()">Keep Session</button>
+            </div>
+        </div>
+    </template>
+
+    <script src="{{.PathPrefix}}/static/js/app.js"></script>
+    <script>
+        window.MATLAB_PROXY = {
+            baseURL: "{{.PathPrefix}}",
+            authEnabled: {{.AuthEnabled}},
+            idleTimeout: {{.IdleTimeout}},
+            idleTimeRemaining: {{.IdleTimeRemaining}},
+            concurrencyEnabled: {{.ConcurrencyEnabled}},
+            mhlmLoginOrigin: "{{.MHLMLoginOrigin}}",
+            matlabVersion: "{{.MATLABVersion}}"
+        };
+        init();
+    </script>
+</body>
+</html>
