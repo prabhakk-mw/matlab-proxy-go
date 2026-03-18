@@ -94,7 +94,7 @@ func main() {
 		sig := <-sigCh
 		logger.Info("received signal, shutting down", "signal", sig)
 		cancel()
-		srv.Shutdown(context.Background())
+		_ = srv.Shutdown(context.Background())
 	}()
 
 	if err := srv.Start(ctx); err != nil {

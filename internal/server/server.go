@@ -127,7 +127,7 @@ func (s *Server) Start(ctx context.Context) error {
 		select {
 		case <-s.session.ShutdownCh():
 			s.logger.Info("idle timeout triggered shutdown")
-			s.Shutdown(context.Background())
+			_ = s.Shutdown(context.Background())
 		case <-ctx.Done():
 		}
 	}()
@@ -157,7 +157,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// Stop MATLAB gracefully first (sends exit via EC), then force if needed
 	if err := s.matlab.Stop(false); err != nil {
 		s.logger.Warn("graceful MATLAB stop failed, forcing", "error", err)
-		s.matlab.Stop(true)
+		_ = s.matlab.Stop(true)
 	}
 
 	// Clean up any remaining MATLAB session files (connector.securePort, scripts, etc.)
@@ -481,7 +481,7 @@ func (s *Server) handleShutdown(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		s.Shutdown(context.Background())
+		_ = s.Shutdown(context.Background())
 	}()
 }
 
@@ -588,7 +588,7 @@ func mhlmLoginOrigin() string {
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v)
 }
 
 func supportedVersions() []string {

@@ -72,7 +72,7 @@ func (hp *HTTPProxy) Forward(w http.ResponseWriter, r *http.Request, ecPort int,
 	copyHeaders(resp.Header, w.Header())
 
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	_, _ = io.Copy(w, resp.Body)
 }
 
 func copyHeaders(src, dst http.Header) {

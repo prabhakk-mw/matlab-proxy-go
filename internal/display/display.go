@@ -1,6 +1,6 @@
 // Copyright 2026 The MathWorks, Inc.
 
-//go:build !windows
+//go:build linux
 
 package display
 
@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"strconv"
 	"syscall"
 )
 
@@ -85,13 +84,13 @@ func (m *Manager) startFluxbox() error {
 func (m *Manager) Stop() {
 	if m.fluxboxCmd != nil && m.fluxboxCmd.Process != nil {
 		m.logger.Info("stopping Fluxbox")
-		syscall.Kill(-m.fluxboxCmd.Process.Pid, syscall.SIGTERM)
-		m.fluxboxCmd.Wait()
+		_ = syscall.Kill(-m.fluxboxCmd.Process.Pid, syscall.SIGTERM)
+		_ = m.fluxboxCmd.Wait()
 	}
 	if m.xvfbCmd != nil && m.xvfbCmd.Process != nil {
 		m.logger.Info("stopping Xvfb")
-		syscall.Kill(-m.xvfbCmd.Process.Pid, syscall.SIGTERM)
-		m.xvfbCmd.Wait()
+		_ = syscall.Kill(-m.xvfbCmd.Process.Pid, syscall.SIGTERM)
+		_ = m.xvfbCmd.Wait()
 	}
 }
 
@@ -114,7 +113,3 @@ func findFreeDisplay() (int, error) {
 	return 0, fmt.Errorf("no free display number found")
 }
 
-// findFreeDisplay helper - convert int to string
-func itoa(n int) string {
-	return strconv.Itoa(n)
-}

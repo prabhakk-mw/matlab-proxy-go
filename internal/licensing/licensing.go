@@ -85,7 +85,7 @@ func (m *Manager) Init() error {
 		switch cached.Type {
 		case TypeMHLM:
 			if !m.isMHLMTokenValid(cached) {
-				m.removeCachedConfig()
+				_ = m.removeCachedConfig()
 				m.mu.Unlock()
 				return nil
 			}
@@ -96,7 +96,7 @@ func (m *Manager) Init() error {
 			if err := m.fetchAndSetEntitlements(); err != nil {
 				m.mu.Lock()
 				m.info = nil
-				m.removeCachedConfig()
+				_ = m.removeCachedConfig()
 				m.mu.Unlock()
 				return fmt.Errorf("refreshing MHLM entitlements from cache: %w", err)
 			}
@@ -114,7 +114,7 @@ func (m *Manager) Init() error {
 			m.info = cached
 
 		default:
-			m.removeCachedConfig()
+			_ = m.removeCachedConfig()
 		}
 	}
 

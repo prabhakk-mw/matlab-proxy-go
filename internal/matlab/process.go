@@ -184,7 +184,7 @@ func (p *Process) run(ctx context.Context) {
 				cmd.Stdin = devnull
 				defer devnull.Close()
 			}
-		} else {
+		} else if slaveFd != nil {
 			cmd.Stdin = slaveFd
 			defer ptmx.Close()
 			defer slaveFd.Close()
@@ -308,7 +308,7 @@ func (p *Process) waitForConnector(ctx context.Context, logsDir string, processD
 			if content == "" {
 				continue
 			}
-			fmt.Sscanf(content, "%d", &port)
+			_, _ = fmt.Sscanf(content, "%d", &port)
 			if port > 0 {
 				goto portFound
 			}
@@ -605,7 +605,7 @@ func (p *Process) buildMATLABEnv(logsDir string) []string {
 
 func generateMWAPIKey() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
 

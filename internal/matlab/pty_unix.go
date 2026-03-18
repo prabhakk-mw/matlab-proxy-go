@@ -1,6 +1,6 @@
 // Copyright 2026 The MathWorks, Inc.
 
-//go:build !windows
+//go:build linux
 
 package matlab
 
@@ -19,11 +19,6 @@ func openPTY() (master *os.File, slave *os.File, err error) {
 	ptmx, err := os.OpenFile("/dev/ptmx", os.O_RDWR, 0)
 	if err != nil {
 		return nil, nil, fmt.Errorf("opening /dev/ptmx: %w", err)
-	}
-
-	// Grant access to the slave
-	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, ptmx.Fd(), syscall.TIOCGPTN, 0); errno != 0 {
-		// TIOCGPTN may fail on some systems, try grantpt via unlockpt only
 	}
 
 	// Unlock the slave

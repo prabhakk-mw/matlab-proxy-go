@@ -81,9 +81,9 @@ func (wsp *WebSocketProxy) Handle(w http.ResponseWriter, r *http.Request, ecPort
 	err = <-errc
 
 	// Close both connections
-	clientConn.WriteMessage(websocket.CloseMessage,
+	_ = clientConn.WriteMessage(websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	ecConn.WriteMessage(websocket.CloseMessage,
+	_ = ecConn.WriteMessage(websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 
 	if err != nil && !isNormalClose(err) {

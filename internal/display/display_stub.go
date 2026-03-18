@@ -1,12 +1,12 @@
 // Copyright 2026 The MathWorks, Inc.
 
-//go:build windows
+//go:build !linux
 
 package display
 
 import "log/slog"
 
-// Manager is a no-op on Windows (no Xvfb needed).
+// Manager is a no-op on non-Linux platforms (no Xvfb needed).
 type Manager struct {
 	logger *slog.Logger
 }
@@ -18,7 +18,6 @@ func NewManager(logger *slog.Logger) *Manager {
 func (m *Manager) Display() string { return "" }
 
 func (m *Manager) Start(enableSimulink bool) error {
-	m.logger.Info("display manager not needed on Windows")
 	return nil
 }
 

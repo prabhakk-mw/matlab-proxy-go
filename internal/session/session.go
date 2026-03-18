@@ -47,7 +47,7 @@ func NewManager(idleTimeoutMinutes int, logger *slog.Logger) *Manager {
 // GenerateClientID creates a new unique client identifier.
 func GenerateClientID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
 
