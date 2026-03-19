@@ -57,8 +57,21 @@ jobs:
           zip "${ARCHIVE}" matlab-proxy.exe
           echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
 
+      - name: Build .deb and .rpm packages
+        if: matrix.goos == 'linux'
+        env:
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          nfpm package --packager deb --target "matlab-proxy_${VERSION}_${{ matrix.goarch }}.deb"
+          nfpm package --packager rpm --target "matlab-proxy-${VERSION}.${{ matrix.goarch }}.rpm"
+
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.ARCHIVE }}
+          files: |
+            ${{ env.ARCHIVE }}
+            *.deb
+            *.rpm
           prerelease: ${{ contains(github.ref_name, '-') }}

@@ -37,6 +37,55 @@ Pre-built binaries for Linux, macOS, and Windows are available on the [GitHub Re
    sudo mv matlab-proxy /usr/local/bin/
    ```
 
+## Install with a Package Manager (Linux)
+
+On Linux, `.deb` and `.rpm` packages are published with each release.
+
+### Debian / Ubuntu (apt / dpkg)
+
+```bash
+# Download the .deb for your architecture from the latest release
+# For amd64:
+curl -LO "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy_VERSION_amd64.deb"
+
+# Or use the gh CLI:
+gh release download --repo prabhakk-mw/matlab-proxy-go --pattern '*.deb'
+
+# Install
+sudo dpkg -i matlab-proxy_*_amd64.deb
+
+# Verify
+matlab-proxy --version
+```
+
+### RHEL / Fedora / Amazon Linux (rpm)
+
+```bash
+# Download the .rpm for your architecture from the latest release
+curl -LO "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy-VERSION.amd64.rpm"
+
+# Or use the gh CLI:
+gh release download --repo prabhakk-mw/matlab-proxy-go --pattern '*.rpm'
+
+# Install
+sudo rpm -i matlab-proxy-*.amd64.rpm
+
+# Verify
+matlab-proxy --version
+```
+
+Both packages install the binary to `/usr/local/bin/matlab-proxy`.
+
+### Uninstall
+
+```bash
+# Debian / Ubuntu
+sudo dpkg -r matlab-proxy
+
+# RHEL / Fedora
+sudo rpm -e matlab-proxy
+```
+
 ## Install with `go install`
 
 > **Note:** This option will only work once the repository is hosted at `github.com/mathworks/matlab-proxy-go` (matching the Go module path). Until then, use a pre-built binary or build from source.

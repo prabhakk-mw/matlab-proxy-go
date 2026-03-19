@@ -15,15 +15,52 @@ Key features:
 
 ## Quick Start
 
-Download a pre-built binary from the [Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page, or build from source:
+### Option 1: Install from a package (Linux)
+
+Download `.deb` or `.rpm` packages from the [Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page:
+
+```bash
+# Debian / Ubuntu
+sudo dpkg -i matlab-proxy_*_amd64.deb
+
+# RHEL / Fedora
+sudo rpm -i matlab-proxy-*.amd64.rpm
+```
+
+### Option 2: Download a pre-built binary
+
+Download a binary for your platform from the [Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page:
+
+```bash
+# Linux (amd64) — extract and install
+curl -L "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy-v0.1.0-linux-amd64.tar.gz" | tar xz
+sudo mv matlab-proxy /usr/local/bin/
+
+# macOS (Apple Silicon)
+curl -L "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy-v0.1.0-darwin-arm64.tar.gz" | tar xz
+sudo mv matlab-proxy /usr/local/bin/
+
+# Or use the gh CLI (any platform)
+gh release download --repo prabhakk-mw/matlab-proxy-go --pattern '*linux-amd64.tar.gz'
+tar xzf matlab-proxy-*.tar.gz
+sudo mv matlab-proxy /usr/local/bin/
+```
+
+See [Installation](docs/installation.md) for all platforms and options.
+
+### Option 3: Build from source
 
 ```bash
 git clone https://github.com/prabhakk-mw/matlab-proxy-go.git
 cd matlab-proxy-go
 go build -ldflags "-s -w" -o bin/matlab-proxy ./cmd/matlab-proxy/
+```
 
-# Run (MATLAB must be on PATH or set MWI_CUSTOM_MATLAB_ROOT)
-./bin/matlab-proxy
+### Run
+
+```bash
+# MATLAB must be on PATH or set MWI_CUSTOM_MATLAB_ROOT
+matlab-proxy
 ```
 
 The server prints an access URL on startup. Open it in your browser.

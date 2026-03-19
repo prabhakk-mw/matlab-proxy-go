@@ -1,0 +1,17 @@
+# Copyright 2026 The MathWorks, Inc.
+
+name: matlab-proxy
+arch: "${GOARCH}"
+platform: linux
+version: "${VERSION}"
+maintainer: "The MathWorks, Inc. <cloud@mathworks.com>"
+description: "Browser-based access to MATLAB — a web server that launches MATLAB and provides access to it from a browser."
+vendor: "The MathWorks, Inc."
+homepage: "https://github.com/mathworks/matlab-proxy-go"
+license: "MATHWORKS CLOUD REFERENCE ARCHITECTURE LICENSE"
+
+contents:
+  - src: matlab-proxy
+    dst: /usr/local/bin/matlab-proxy
+    file_info:
+      mode: 0755
