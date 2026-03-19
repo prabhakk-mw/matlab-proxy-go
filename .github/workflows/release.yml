@@ -60,7 +60,7 @@ jobs:
       - name: Build .deb and .rpm packages
         if: matrix.goos == 'linux'
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          export VERSION="${GITHUB_REF_NAME#v}"
           GOARCH= go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
           export GOARCH="${{ matrix.goarch }}"
           nfpm package --packager deb --target "matlab-proxy_${VERSION}_${{ matrix.goarch }}.deb"
