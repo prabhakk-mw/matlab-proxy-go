@@ -5,6 +5,29 @@
 - **MATLAB** installed on the target machine (R2020b or later)
 - **Linux:** Xvfb (recommended for headless environments)
 
+## Install Script (Linux / macOS)
+
+The easiest way to install. The script detects your OS and architecture, fetches the latest release from GitHub, and installs the binary to `/usr/local/bin`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+```
+
+Customize with environment variables:
+
+```bash
+# Install a specific version
+VERSION=0.2.1 curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+
+# Install to a custom directory
+INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+
+# Both
+VERSION=0.2.1 INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+```
+
+The script uses `sudo` only if the install directory is not writable by the current user.
+
 ## Download a Pre-Built Binary
 
 Pre-built binaries for Linux, macOS, and Windows are available on the [GitHub Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page.

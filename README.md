@@ -15,7 +15,21 @@ Key features:
 
 ## Quick Start
 
-### Option 1: Install from a package (Linux)
+### Option 1: Install script (Linux / macOS)
+
+The install script automatically downloads the latest release for your platform:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+```
+
+To install a specific version or to a custom directory:
+
+```bash
+VERSION=0.2.1 INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+```
+
+### Option 2: Install from a package (Linux)
 
 Download `.deb` or `.rpm` packages from the [Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page:
 
@@ -27,34 +41,29 @@ sudo dpkg -i matlab-proxy_*_amd64.deb
 sudo rpm -i matlab-proxy-*.amd64.rpm
 ```
 
-### Option 2: Download a pre-built binary
+### Option 3: Download a pre-built binary
 
 Download a binary for your platform from the [Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page:
 
 ```bash
-# Linux (amd64) — extract and install
-curl -L "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy-v0.1.0-linux-amd64.tar.gz" | tar xz
+# Linux (amd64)
+curl -fSL "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy-v0.2.1-linux-amd64.tar.gz" | tar xz
 sudo mv matlab-proxy /usr/local/bin/
 
 # macOS (Apple Silicon)
-curl -L "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy-v0.1.0-darwin-arm64.tar.gz" | tar xz
-sudo mv matlab-proxy /usr/local/bin/
-
-# Or use the gh CLI (any platform)
-gh release download --repo prabhakk-mw/matlab-proxy-go --pattern '*linux-amd64.tar.gz'
-tar xzf matlab-proxy-*.tar.gz
+curl -fSL "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy-v0.2.1-darwin-arm64.tar.gz" | tar xz
 sudo mv matlab-proxy /usr/local/bin/
 ```
 
-See [Installation](docs/installation.md) for all platforms and options.
-
-### Option 3: Build from source
+### Option 4: Build from source
 
 ```bash
 git clone https://github.com/prabhakk-mw/matlab-proxy-go.git
 cd matlab-proxy-go
 go build -ldflags "-s -w" -o bin/matlab-proxy ./cmd/matlab-proxy/
 ```
+
+See [Installation](docs/installation.md) for all platforms and options.
 
 ### Run
 
