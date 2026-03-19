@@ -10,19 +10,11 @@ vendor: "The MathWorks, Inc."
 homepage: "https://github.com/mathworks/matlab-proxy-go"
 license: "MATHWORKS CLOUD REFERENCE ARCHITECTURE LICENSE"
 
+# Recommended dependencies (installed by default with apt, skippable with --no-install-recommends).
+# Uses Debian package names; RPM equivalents are xorg-x11-server-Xvfb and fluxbox.
 recommends:
   - xvfb
   - fluxbox
-
-deb:
-  recommends:
-    - xvfb
-    - fluxbox
-
-rpm:
-  recommends:
-    - xorg-x11-server-Xvfb
-    - fluxbox
 
 contents:
   - src: matlab-proxy
