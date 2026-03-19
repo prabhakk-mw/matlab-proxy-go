@@ -10,6 +10,20 @@ vendor: "The MathWorks, Inc."
 homepage: "https://github.com/mathworks/matlab-proxy-go"
 license: "MATHWORKS CLOUD REFERENCE ARCHITECTURE LICENSE"
 
+recommends:
+  - xvfb
+  - fluxbox
+
+deb:
+  recommends:
+    - xvfb
+    - fluxbox
+
+rpm:
+  recommends:
+    - xorg-x11-server-Xvfb
+    - fluxbox
+
 contents:
   - src: matlab-proxy
     dst: /usr/local/bin/matlab-proxy

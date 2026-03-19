@@ -31,14 +31,20 @@ VERSION=0.2.1 INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.
 
 ### Option 2: Install from a package (Linux)
 
-Download `.deb` or `.rpm` packages from the [Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page:
+Native `.deb` and `.rpm` packages are available on the [Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page. Packages automatically pull in recommended dependencies (Xvfb, Fluxbox) and provide clean install/uninstall tracking via the system package manager.
 
 ```bash
-# Debian / Ubuntu
+# Debian / Ubuntu — using apt (also installs recommended deps: xvfb, fluxbox)
+sudo apt install ./matlab-proxy_*_amd64.deb
+
+# Debian / Ubuntu — using dpkg (binary only, no dependency resolution)
 sudo dpkg -i matlab-proxy_*_amd64.deb
 
 # RHEL / Fedora
 sudo rpm -i matlab-proxy-*.amd64.rpm
+
+# Skip optional dependencies if not needed (e.g. desktop systems with a display)
+sudo apt install --no-install-recommends ./matlab-proxy_*_amd64.deb
 ```
 
 ### Option 3: Download a pre-built binary
@@ -101,6 +107,9 @@ Go's concurrency model (goroutines) and compiled nature result in lower memory u
 
 ### Simplified operations
 No virtual environments, no `pip install`, no `package.json`. The binary is self-contained and can be managed with standard process supervisors (systemd, supervisord, Kubernetes).
+
+### Native package management
+The Go version ships as `.deb` and `.rpm` packages with dependency declarations. Installing via `apt` or `rpm` automatically pulls in recommended system dependencies (Xvfb, Fluxbox), provides clean uninstall tracking, and integrates with enterprise fleet management tools (Ansible, Chef, Puppet). The Python version requires `pip install` which does not manage system-level dependencies.
 
 ### Cross-compilation
 A single `GOOS=linux GOARCH=amd64 go build` command produces a binary for any target platform. No need to worry about platform-specific Python wheels or native dependencies.
