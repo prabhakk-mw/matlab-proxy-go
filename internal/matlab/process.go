@@ -115,8 +115,12 @@ func (p *Process) Start(restart bool) error {
 	}
 
 	if p.cfg.MATLABCommand == "" {
+		p.errors = []ErrorInfo{{
+			Message: "Unable to find MATLAB on the system PATH. Add MATLAB to the system PATH, and restart matlab-proxy.",
+			Type:    "MatlabInstallError",
+		}}
 		p.mu.Unlock()
-		return fmt.Errorf("MATLAB not found on this system")
+		return fmt.Errorf("unable to find MATLAB on the system PATH")
 	}
 
 	p.status = StatusStarting

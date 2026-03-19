@@ -77,6 +77,10 @@ func main() {
 		"auth", cfg.EnableTokenAuth,
 	)
 
+	if cfg.MATLABCommand == "" {
+		logger.Warn("Unable to find MATLAB on the system PATH. Add MATLAB to the system PATH, and restart matlab-proxy.")
+	}
+
 	// Create and start server
 	srv, err := server.New(cfg, logger)
 	if err != nil {

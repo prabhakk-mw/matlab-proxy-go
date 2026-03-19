@@ -163,6 +163,42 @@
                 licEl.textContent = "Not Configured";
             }
         }
+
+        // Update error section
+        var errorSection = document.querySelector("#overlay-body .error-section");
+        var errData = data.error;
+        if (errData && errData.message) {
+            if (!errorSection) {
+                errorSection = document.createElement("div");
+                errorSection.className = "error-section";
+                var statusSection = document.querySelector("#overlay-body .status-section");
+                if (statusSection) statusSection.parentNode.insertBefore(errorSection, statusSection.nextSibling);
+            }
+            if (errorSection) errorSection.innerHTML = '<div class="error-banner">' + escapeHtml(errData.message) + '</div>';
+        } else if (errorSection) {
+            errorSection.remove();
+        }
+
+        // Update warning section
+        var warningSection = document.querySelector("#overlay-body .warning-section");
+        var warnings = data.warnings || [];
+        if (warnings.length > 0) {
+            if (!warningSection) {
+                warningSection = document.createElement("div");
+                warningSection.className = "warning-section";
+                var after = document.querySelector("#overlay-body .error-section") || document.querySelector("#overlay-body .status-section");
+                if (after) after.parentNode.insertBefore(warningSection, after.nextSibling);
+            }
+            if (warningSection) warningSection.innerHTML = warnings.map(function(w) { return '<div class="warning-banner">' + escapeHtml(w) + '</div>'; }).join("");
+        } else if (warningSection) {
+            warningSection.remove();
+        }
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement("div");
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
     }
 
     // --- Overlay management ---
