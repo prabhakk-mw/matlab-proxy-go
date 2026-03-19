@@ -41,6 +41,15 @@ VERSION=0.2.1 INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.
 Native `.deb` and `.rpm` packages are available on the [Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page. Packages automatically pull in recommended dependencies (Xvfb, Fluxbox) and provide clean install/uninstall tracking via the system package manager.
 
 ```bash
+# Download with gh CLI
+gh release download --repo prabhakk-mw/matlab-proxy-go --pattern '*amd64.deb'   # Debian/Ubuntu
+gh release download --repo prabhakk-mw/matlab-proxy-go --pattern '*amd64.rpm'   # RHEL/Fedora
+
+# Or download with curl
+VERSION=0.2.3
+curl -fSLO "https://github.com/prabhakk-mw/matlab-proxy-go/releases/download/v${VERSION}/matlab-proxy_${VERSION}_amd64.deb"
+curl -fSLO "https://github.com/prabhakk-mw/matlab-proxy-go/releases/download/v${VERSION}/matlab-proxy-${VERSION}.amd64.rpm"
+
 # Debian / Ubuntu — using apt (also installs recommended deps: xvfb, fluxbox)
 sudo apt install ./matlab-proxy_*_amd64.deb
 
@@ -59,12 +68,16 @@ sudo apt install --no-install-recommends ./matlab-proxy_*_amd64.deb
 Download a binary for your platform from the [Releases](https://github.com/prabhakk-mw/matlab-proxy-go/releases) page:
 
 ```bash
-# Linux (amd64)
-curl -fSL "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy-v0.2.1-linux-amd64.tar.gz" | tar xz
-sudo mv matlab-proxy /usr/local/bin/
+# Download with gh CLI
+gh release download --repo prabhakk-mw/matlab-proxy-go --pattern '*linux-amd64.tar.gz'    # Linux (amd64)
+gh release download --repo prabhakk-mw/matlab-proxy-go --pattern '*darwin-arm64.tar.gz'   # macOS (Apple Silicon)
 
-# macOS (Apple Silicon)
-curl -fSL "https://github.com/prabhakk-mw/matlab-proxy-go/releases/latest/download/matlab-proxy-v0.2.1-darwin-arm64.tar.gz" | tar xz
+# Or download with curl
+VERSION=0.2.3
+curl -fSL "https://github.com/prabhakk-mw/matlab-proxy-go/releases/download/v${VERSION}/matlab-proxy-v${VERSION}-linux-amd64.tar.gz" | tar xz
+curl -fSL "https://github.com/prabhakk-mw/matlab-proxy-go/releases/download/v${VERSION}/matlab-proxy-v${VERSION}-darwin-arm64.tar.gz" | tar xz
+
+# Install
 sudo mv matlab-proxy /usr/local/bin/
 ```
 
