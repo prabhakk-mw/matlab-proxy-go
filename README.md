@@ -1,6 +1,11 @@
+> [!CAUTION]
+> Stop
+> **DO NOT USE.**
+> 
+>  This repository is a prototype / proof-of-concept only. It is NOT intended for production use and MUST NOT be used in any deployment. There is no official support, no guarantee of correctness, and no commitment to maintain this project. Use the official [matlab-proxy](https://github.com/mathworks/matlab-proxy) package instead
+
 # matlab-proxy-go
 
-> **WARNING: This repository is a prototype / proof-of-concept only. It is NOT intended for production use and MUST NOT be used in any deployment. There is no official support, no guarantee of correctness, and no commitment to maintain this project. Use the official [matlab-proxy](https://github.com/mathworks/matlab-proxy) package instead.**
 
 A Go implementation of [matlab-proxy](https://github.com/mathworks/matlab-proxy) — a web server that launches MATLAB and provides browser-based access to it.
 
