@@ -2,19 +2,22 @@
 # Copyright 2026 The MathWorks, Inc.
 #
 # Install script for matlab-proxy.
-# Downloads the latest release binary from GitHub and installs it to /usr/local/bin.
+# Downloads the latest release binary from GitHub and installs it to ~/.local/bin.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
 #
 # Options (via environment variables):
-#   VERSION     Install a specific version (e.g. VERSION=0.2.1)
-#   INSTALL_DIR Install to a custom directory (default: /usr/local/bin)
+#   VERSION     Install a specific version (e.g. VERSION=0.5.1)
+#   INSTALL_DIR Install to a custom directory (default: $HOME/.local/bin)
+#
+# Note: When piping to sh, pass env vars to sh (right side of pipe), not curl:
+#   curl -fsSL ... | VERSION=0.5.1 INSTALL_DIR=. sh
 
 set -e
 
 REPO="prabhakk-mw/matlab-proxy-go"
-INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 
 # Detect OS
 OS="$(uname -s)"
@@ -33,7 +36,7 @@ case "$ARCH" in
 esac
 
 # Determine version
-if [ -z "$VERSION" ]; then
+if [ -z "${VERSION:-}" ]; then
     echo "Fetching latest release..."
     VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')"
     if [ -z "$VERSION" ]; then
@@ -58,6 +61,7 @@ curl -fSL -o "${TMPDIR}/${ARCHIVE}" "$URL"
 tar xzf "${TMPDIR}/${ARCHIVE}" -C "$TMPDIR"
 
 # Install
+mkdir -p "$INSTALL_DIR"
 if [ -w "$INSTALL_DIR" ]; then
     mv "${TMPDIR}/matlab-proxy" "${INSTALL_DIR}/matlab-proxy"
 else

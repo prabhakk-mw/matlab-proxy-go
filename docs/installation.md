@@ -7,7 +7,7 @@
 
 ## Install Script (Linux / macOS)
 
-The easiest way to install. The script detects your OS and architecture, fetches the latest release from GitHub, and installs the binary to `/usr/local/bin`:
+The easiest way to install. The script detects your OS and architecture, fetches the latest release from GitHub, and installs the binary to `~/.local/bin`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
@@ -17,13 +17,13 @@ Customize with environment variables:
 
 ```bash
 # Install a specific version
-VERSION=0.2.1 curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | VERSION=0.5.1 sh
 
 # Install to a custom directory
-INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | INSTALL_DIR=/usr/local/bin sh
 
 # Both
-VERSION=0.2.1 INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | VERSION=0.5.1 INSTALL_DIR=/usr/local/bin sh
 ```
 
 The script uses `sudo` only if the install directory is not writable by the current user.

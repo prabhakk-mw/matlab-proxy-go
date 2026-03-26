@@ -34,7 +34,7 @@ curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/in
 To install a specific version or to a custom directory:
 
 ```bash
-VERSION=0.2.1 INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | VERSION=0.5.1 INSTALL_DIR=/usr/local/bin sh
 ```
 
 ### Option 2: Install from a package (Linux)
