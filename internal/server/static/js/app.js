@@ -536,9 +536,57 @@
     var termState = "closed"; // closed | open | minimized
     var availableShells = []; // [{name, command}]
 
+    function renameTab(session) {
+        var label = session.tabEl.querySelector(".tab-label");
+        var input = document.createElement("input");
+        input.type = "text";
+        input.className = "tab-rename-input";
+        input.value = session.name;
+        input.style.cssText = "background:#1e1e1e;color:#fff;border:1px solid #555;font-size:0.8rem;width:" + Math.max(60, label.offsetWidth + 16) + "px;padding:0 4px;outline:none;";
+
+        label.replaceWith(input);
+        input.focus();
+        input.select();
+
+        function commit() {
+            var val = input.value.trim();
+            if (val) session.name = val;
+            var newLabel = document.createElement("span");
+            newLabel.className = "tab-label";
+            newLabel.textContent = session.name;
+            newLabel.addEventListener("click", function() { switchTermSession(session.id); });
+            newLabel.addEventListener("dblclick", function() { renameTab(session); });
+            input.replaceWith(newLabel);
+        }
+
+        input.addEventListener("blur", commit);
+        input.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+            if (e.key === "Escape") { input.value = session.name; input.blur(); }
+        });
+    }
+
     function createTermSession(shellCommand, shellName) {
         var id = termNextId++;
-        var name = shellName || ("Terminal " + id);
+        var baseName = shellName || "Terminal";
+        // Count existing sessions with same base name to generate a unique name
+        var sameBase = termSessions.filter(function(s) { return s.baseName === baseName; });
+        var nameIndex = 1;
+        if (sameBase.length > 0) {
+            var used = sameBase.map(function(s) { return s.nameIndex; });
+            while (used.indexOf(nameIndex) !== -1) nameIndex++;
+        }
+        var name = sameBase.length > 0 ? baseName + " " + nameIndex : baseName;
+
+        // Retroactively rename the first tab if this is the second of its kind
+        if (sameBase.length === 1 && sameBase[0].nameIndex === 1) {
+            var first = sameBase[0];
+            if (first.name === first.baseName) {
+                first.name = first.baseName + " 1";
+                var firstLabel = first.tabEl.querySelector(".tab-label");
+                if (firstLabel) firstLabel.textContent = first.name;
+            }
+        }
 
         // Create pane
         var pane = document.createElement("div");
@@ -553,6 +601,10 @@
         tab.innerHTML = '<span class="tab-label">' + escapeHtml(name) + '</span> <span class="tab-close" title="Close">&times;</span>';
         tab.querySelector(".tab-label").addEventListener("click", function() {
             switchTermSession(id);
+        });
+        tab.querySelector(".tab-label").addEventListener("dblclick", function() {
+            var s = termSessions.find(function(s) { return s.id === id; });
+            if (s) renameTab(s);
         });
         tab.querySelector(".tab-close").addEventListener("click", function(e) {
             e.stopPropagation();
@@ -625,7 +677,7 @@
         });
         observer.observe(pane);
 
-        var session = {id: id, name: name, term: xterm, socket: socket, fitAddon: fitAddon, paneEl: pane, tabEl: tab, observer: observer};
+        var session = {id: id, name: name, baseName: baseName, nameIndex: nameIndex, term: xterm, socket: socket, fitAddon: fitAddon, paneEl: pane, tabEl: tab, observer: observer};
         termSessions.push(session);
         switchTermSession(id);
         updateTermToggle();
