@@ -24,9 +24,49 @@ type resizeMsg struct {
 	Rows int `json:"rows"`
 }
 
+// AvailableShells returns the shells found on this system.
+func AvailableShells() []ShellInfo {
+	var shells []ShellInfo
+	for _, s := range knownShells() {
+		if path, err := exec.LookPath(s.Command); err == nil {
+			s.Command = path
+			shells = append(shells, s)
+		}
+	}
+	if len(shells) == 0 {
+		shells = append(shells, ShellInfo{Name: "sh", Command: "sh"})
+	}
+	return shells
+}
+
+// ShellInfo describes an available shell.
+type ShellInfo struct {
+	Name    string `json:"name"`
+	Command string `json:"command"`
+}
+
+func knownShells() []ShellInfo {
+	if runtime.GOOS == "windows" {
+		return []ShellInfo{
+			{Name: "PowerShell", Command: "pwsh.exe"},
+			{Name: "Windows PowerShell", Command: "powershell.exe"},
+			{Name: "Command Prompt", Command: "cmd.exe"},
+			{Name: "Git Bash", Command: "bash.exe"},
+		}
+	}
+	return []ShellInfo{
+		{Name: "bash", Command: "bash"},
+		{Name: "zsh", Command: "zsh"},
+		{Name: "fish", Command: "fish"},
+		{Name: "sh", Command: "sh"},
+		{Name: "pwsh", Command: "pwsh"},
+	}
+}
+
 // HandleWebSocket upgrades the connection and bridges a PTY shell session
 // over the WebSocket. Text messages carry terminal I/O; binary messages
-// carry control commands (resize).
+// carry control commands (resize). The shell to launch can be specified
+// via the "shell" query parameter.
 func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -35,7 +75,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 	}
 	defer conn.Close()
 
-	shell := getShell()
+	shell := resolveShell(r.URL.Query().Get("shell"))
 	session, err := newPTYSession(shell)
 	if err != nil {
 		logger.Error("failed to start terminal session", "error", err)
@@ -103,8 +143,19 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 	wg.Wait()
 }
 
-// getShell returns the user's shell, falling back to common defaults.
-func getShell() string {
+// resolveShell returns the requested shell if valid, otherwise the user's
+// default shell.
+func resolveShell(requested string) string {
+	if requested != "" {
+		if path, err := exec.LookPath(requested); err == nil {
+			return path
+		}
+	}
+	return defaultShell()
+}
+
+// defaultShell returns the user's shell, falling back to common defaults.
+func defaultShell() string {
 	if runtime.GOOS == "windows" {
 		if comspec := os.Getenv("COMSPEC"); comspec != "" {
 			return comspec

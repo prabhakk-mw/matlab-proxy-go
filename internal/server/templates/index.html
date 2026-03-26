@@ -218,15 +218,16 @@
             <div class="terminal-divider-handle"></div>
         </div>
         <div class="terminal-header">
-            <div class="terminal-tabs">
-                <span class="terminal-tab active">Terminal</span>
-            </div>
+            <div id="terminal-tabs" class="terminal-tabs"></div>
+            <span id="terminal-tab-add" class="terminal-tab-add" title="New terminal">+
+                <div id="shell-picker" class="shell-picker"></div>
+            </span>
             <div class="terminal-actions">
                 <button id="terminal-minimize" class="terminal-action-btn" title="Minimize (Ctrl+`)">&#8211;</button>
                 <button id="terminal-close" class="terminal-action-btn" title="Close terminal">&times;</button>
             </div>
         </div>
-        <div id="terminal-container"></div>
+        <div id="terminal-panes" class="terminal-panes"></div>
     </div>
 
     <!-- Terminal toggle button -->

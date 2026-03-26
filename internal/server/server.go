@@ -209,6 +209,7 @@ func (s *Server) setupRoutes() http.Handler {
 			r.Delete("/shutdown_integration", s.handleShutdown)
 			r.Post("/clear_client_id", s.handleClearClientID)
 			r.Get("/terminal/ws", s.handleTerminalWS)
+			r.Get("/terminal/shells", s.handleTerminalShells)
 		})
 
 		// Serve the frontend UI
@@ -510,6 +511,12 @@ func (s *Server) handleClearClientID(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleTerminalWS(w http.ResponseWriter, r *http.Request) {
 	s.session.ResetIdleTimer()
 	terminal.HandleWebSocket(w, r, s.logger.With("component", "terminal"))
+}
+
+func (s *Server) handleTerminalShells(w http.ResponseWriter, r *http.Request) {
+	shells := terminal.AvailableShells()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(shells)
 }
 
 func (s *Server) handleMATLABProxy(w http.ResponseWriter, r *http.Request) {

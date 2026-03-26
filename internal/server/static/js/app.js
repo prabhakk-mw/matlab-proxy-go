@@ -528,25 +528,40 @@
         });
     }
 
-    // --- Terminal ---
+    // --- Terminal (multi-session) ---
 
-    let term = null;
-    let termSocket = null;
-    let termFitAddon = null;
-    let termState = "closed"; // closed | open | minimized
+    var termSessions = [];  // [{id, name, term, socket, fitAddon, paneEl, tabEl, observer}]
+    var activeTermId = null;
+    var termNextId = 1;
+    var termState = "closed"; // closed | open | minimized
+    var availableShells = []; // [{name, command}]
 
-    function initTerminal() {
-        var drawer = document.getElementById("terminal-drawer");
-        var container = document.getElementById("terminal-container");
-        var toggleBtn = document.getElementById("terminal-toggle");
+    function createTermSession(shellCommand, shellName) {
+        var id = termNextId++;
+        var name = shellName || ("Terminal " + id);
 
-        // Set initial height from localStorage or default 40%
-        var savedHeight = localStorage.getItem("terminalHeight");
-        var height = savedHeight ? parseInt(savedHeight, 10) : Math.round(window.innerHeight * 0.4);
-        drawer.style.height = height + "px";
+        // Create pane
+        var pane = document.createElement("div");
+        pane.className = "terminal-pane";
+        pane.id = "term-pane-" + id;
+        document.getElementById("terminal-panes").appendChild(pane);
 
-        // Create xterm instance
-        term = new window.Terminal({
+        // Create tab
+        var tab = document.createElement("span");
+        tab.className = "terminal-tab";
+        tab.dataset.termId = id;
+        tab.innerHTML = '<span class="tab-label">' + escapeHtml(name) + '</span> <span class="tab-close" title="Close">&times;</span>';
+        tab.querySelector(".tab-label").addEventListener("click", function() {
+            switchTermSession(id);
+        });
+        tab.querySelector(".tab-close").addEventListener("click", function(e) {
+            e.stopPropagation();
+            closeTermSession(id);
+        });
+        document.getElementById("terminal-tabs").appendChild(tab);
+
+        // Create xterm
+        var xterm = new window.Terminal({
             cursorBlink: true,
             fontSize: 14,
             fontFamily: "'Cascadia Code', 'Fira Code', 'Source Code Pro', Menlo, monospace",
@@ -557,77 +572,123 @@
             }
         });
 
-        termFitAddon = new window.FitAddon.FitAddon();
-        term.loadAddon(termFitAddon);
-        term.open(container);
+        var fitAddon = new window.FitAddon.FitAddon();
+        xterm.loadAddon(fitAddon);
+        xterm.open(pane);
 
         // Connect WebSocket
         var proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+        var params = [];
+        if (authToken) params.push("mwi-auth-token=" + encodeURIComponent(authToken));
+        if (shellCommand) params.push("shell=" + encodeURIComponent(shellCommand));
         var wsUrl = proto + "//" + window.location.host + config.baseURL + "/terminal/ws";
-        if (authToken) {
-            wsUrl += "?mwi-auth-token=" + encodeURIComponent(authToken);
-        }
-        termSocket = new WebSocket(wsUrl);
+        if (params.length) wsUrl += "?" + params.join("&");
+        var socket = new WebSocket(wsUrl);
 
-        termSocket.onopen = function() {
-            termFitAddon.fit();
-            // Send initial size
-            var dims = termFitAddon.proposeDimensions();
+        socket.onopen = function() {
+            fitAddon.fit();
+            var dims = fitAddon.proposeDimensions();
             if (dims) {
-                termSocket.send(new Blob([JSON.stringify({cols: dims.cols, rows: dims.rows})]));
+                socket.send(new Blob([JSON.stringify({cols: dims.cols, rows: dims.rows})]));
             }
         };
 
-        termSocket.onmessage = function(e) {
+        socket.onmessage = function(e) {
             if (typeof e.data === "string") {
-                term.write(e.data);
+                xterm.write(e.data);
             } else if (e.data instanceof Blob) {
-                e.data.text().then(function(text) { term.write(text); });
+                e.data.text().then(function(text) { xterm.write(text); });
             }
         };
 
-        termSocket.onclose = function() {
-            term.write("\r\n\x1b[90m[Session ended]\x1b[0m\r\n");
-            toggleBtn.classList.remove("terminal-active");
+        socket.onclose = function() {
+            xterm.write("\r\n\x1b[90m[Session ended]\x1b[0m\r\n");
         };
 
-        // Terminal input → WebSocket
-        term.onData(function(data) {
-            if (termSocket && termSocket.readyState === WebSocket.OPEN) {
-                termSocket.send(data);
+        xterm.onData(function(data) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(data);
             }
         });
 
-        // Handle resize
-        var resizeObserver = new ResizeObserver(function() {
-            if (termState === "open" && termFitAddon) {
-                termFitAddon.fit();
-                if (termSocket && termSocket.readyState === WebSocket.OPEN) {
-                    var dims = termFitAddon.proposeDimensions();
+        // Resize observer
+        var observer = new ResizeObserver(function() {
+            if (termState === "open" && activeTermId === id) {
+                fitAddon.fit();
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    var dims = fitAddon.proposeDimensions();
                     if (dims) {
-                        termSocket.send(new Blob([JSON.stringify({cols: dims.cols, rows: dims.rows})]));
+                        socket.send(new Blob([JSON.stringify({cols: dims.cols, rows: dims.rows})]));
                     }
                 }
             }
         });
-        resizeObserver.observe(container);
+        observer.observe(pane);
 
-        toggleBtn.classList.add("terminal-active");
+        var session = {id: id, name: name, term: xterm, socket: socket, fitAddon: fitAddon, paneEl: pane, tabEl: tab, observer: observer};
+        termSessions.push(session);
+        switchTermSession(id);
+        updateTermToggle();
+        return session;
     }
 
-    function destroyTerminal() {
-        if (termSocket) {
-            termSocket.close();
-            termSocket = null;
+    function switchTermSession(id) {
+        activeTermId = id;
+        termSessions.forEach(function(s) {
+            if (s.id === id) {
+                s.paneEl.classList.add("active");
+                s.tabEl.classList.add("active");
+                setTimeout(function() { s.fitAddon.fit(); s.term.focus(); }, 50);
+            } else {
+                s.paneEl.classList.remove("active");
+                s.tabEl.classList.remove("active");
+            }
+        });
+    }
+
+    function closeTermSession(id) {
+        var idx = termSessions.findIndex(function(s) { return s.id === id; });
+        if (idx === -1) return;
+        var session = termSessions[idx];
+
+        session.observer.disconnect();
+        if (session.socket) session.socket.close();
+        if (session.term) session.term.dispose();
+        session.paneEl.remove();
+        session.tabEl.remove();
+        termSessions.splice(idx, 1);
+
+        if (termSessions.length === 0) {
+            setTermState("closed");
+        } else if (activeTermId === id) {
+            // Switch to nearest tab
+            var next = termSessions[Math.min(idx, termSessions.length - 1)];
+            switchTermSession(next.id);
         }
-        if (term) {
-            term.dispose();
-            term = null;
+        updateTermToggle();
+    }
+
+    function destroyAllTerminals() {
+        while (termSessions.length > 0) {
+            var s = termSessions[0];
+            s.observer.disconnect();
+            if (s.socket) s.socket.close();
+            if (s.term) s.term.dispose();
+            s.paneEl.remove();
+            s.tabEl.remove();
+            termSessions.splice(0, 1);
         }
-        termFitAddon = null;
-        var container = document.getElementById("terminal-container");
-        container.innerHTML = "";
-        document.getElementById("terminal-toggle").classList.remove("terminal-active");
+        activeTermId = null;
+        updateTermToggle();
+    }
+
+    function updateTermToggle() {
+        var btn = document.getElementById("terminal-toggle");
+        if (termSessions.length > 0) {
+            btn.classList.add("terminal-active");
+        } else {
+            btn.classList.remove("terminal-active");
+        }
     }
 
     function setTermState(state) {
@@ -640,7 +701,7 @@
             drawer.classList.add("terminal-closed");
             drawer.classList.remove("terminal-minimized");
             frameContainer.style.height = "100%";
-            destroyTerminal();
+            destroyAllTerminals();
         } else if (state === "minimized") {
             drawer.classList.remove("terminal-closed");
             drawer.classList.add("terminal-minimized");
@@ -651,8 +712,9 @@
             drawer.classList.remove("terminal-minimized");
             var height = parseInt(drawer.style.height, 10) || Math.round(window.innerHeight * 0.4);
             frameContainer.style.height = "calc(100% - " + height + "px)";
-            if (termFitAddon) {
-                setTimeout(function() { termFitAddon.fit(); }, 50);
+            var active = termSessions.find(function(s) { return s.id === activeTermId; });
+            if (active) {
+                setTimeout(function() { active.fitAddon.fit(); }, 50);
             }
         }
     }
@@ -660,12 +722,42 @@
     function toggleTerminal() {
         if (termState === "closed") {
             setTermState("open");
-            initTerminal();
+            createTermSession(null, null);
         } else if (termState === "minimized") {
             setTermState("open");
         } else {
             setTermState("minimized");
         }
+    }
+
+    function loadAvailableShells(callback) {
+        if (availableShells.length > 0) { callback(); return; }
+        api("GET", "/terminal/shells").then(function(data) {
+            if (data && Array.isArray(data)) {
+                availableShells = data;
+            }
+            callback();
+        });
+    }
+
+    function showShellPicker() {
+        var picker = document.getElementById("shell-picker");
+        loadAvailableShells(function() {
+            picker.innerHTML = "";
+            availableShells.forEach(function(shell) {
+                var item = document.createElement("div");
+                item.className = "shell-picker-item";
+                item.textContent = shell.name;
+                item.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    picker.classList.remove("open");
+                    if (termState === "closed") setTermState("open");
+                    createTermSession(shell.command, shell.name);
+                });
+                picker.appendChild(item);
+            });
+            picker.classList.add("open");
+        });
     }
 
     function setupTerminalUI() {
@@ -675,6 +767,12 @@
         var divider = document.getElementById("terminal-divider");
         var drawer = document.getElementById("terminal-drawer");
         var frameContainer = document.getElementById("matlab-frame-container");
+        var addBtn = document.getElementById("terminal-tab-add");
+
+        // Set initial drawer height
+        var savedHeight = localStorage.getItem("terminalHeight");
+        var height = savedHeight ? parseInt(savedHeight, 10) : Math.round(window.innerHeight * 0.4);
+        drawer.style.height = height + "px";
 
         toggleBtn.addEventListener("click", toggleTerminal);
 
@@ -688,6 +786,22 @@
 
         closeBtn.addEventListener("click", function() {
             setTermState("closed");
+        });
+
+        // New tab button — show shell picker
+        addBtn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            var picker = document.getElementById("shell-picker");
+            if (picker.classList.contains("open")) {
+                picker.classList.remove("open");
+            } else {
+                showShellPicker();
+            }
+        });
+
+        // Close shell picker on outside click
+        document.addEventListener("click", function() {
+            document.getElementById("shell-picker").classList.remove("open");
         });
 
         // Keyboard shortcut: Ctrl+`
@@ -704,7 +818,6 @@
             var startY = e.clientY;
             var startHeight = parseInt(drawer.style.height, 10) || Math.round(window.innerHeight * 0.4);
 
-            // Disable pointer events on iframes so they don't steal mousemove during drag
             var matlabFrame = document.getElementById("matlab-frame");
             if (matlabFrame) matlabFrame.style.pointerEvents = "none";
 
@@ -720,15 +833,16 @@
             function onMouseUp() {
                 document.removeEventListener("mousemove", onMouseMove);
                 document.removeEventListener("mouseup", onMouseUp);
-                // Re-enable pointer events on the iframe
                 if (matlabFrame) matlabFrame.style.pointerEvents = "";
                 localStorage.setItem("terminalHeight", parseInt(drawer.style.height, 10));
-                if (termFitAddon) termFitAddon.fit();
-                // Send updated size
-                if (termSocket && termSocket.readyState === WebSocket.OPEN) {
-                    var dims = termFitAddon.proposeDimensions();
-                    if (dims) {
-                        termSocket.send(new Blob([JSON.stringify({cols: dims.cols, rows: dims.rows})]));
+                var active = termSessions.find(function(s) { return s.id === activeTermId; });
+                if (active) {
+                    active.fitAddon.fit();
+                    if (active.socket && active.socket.readyState === WebSocket.OPEN) {
+                        var dims = active.fitAddon.proposeDimensions();
+                        if (dims) {
+                            active.socket.send(new Blob([JSON.stringify({cols: dims.cols, rows: dims.rows})]));
+                        }
                     }
                 }
             }
