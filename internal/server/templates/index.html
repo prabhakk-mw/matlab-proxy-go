@@ -211,6 +211,7 @@
         </div>
     </template>
 
+    {{if .TerminalEnabled}}
     <!-- Terminal drawer -->
     <div id="terminal-drawer" class="terminal-drawer terminal-closed">
         <div id="terminal-divider" class="terminal-divider">
@@ -235,6 +236,7 @@
 
     <script src="{{.PathPrefix}}/static/js/xterm.js"></script>
     <script src="{{.PathPrefix}}/static/js/xterm-addon-fit.js"></script>
+    {{end}}
     <script src="{{.PathPrefix}}/static/js/app.js"></script>
     <script>
         window.MATLAB_PROXY = {
@@ -243,6 +245,7 @@
             idleTimeout: {{.IdleTimeout}},
             idleTimeRemaining: {{.IdleTimeRemaining}},
             concurrencyEnabled: {{.ConcurrencyEnabled}},
+            terminalEnabled: {{.TerminalEnabled}},
             mhlmLoginOrigin: "{{.MHLMLoginOrigin}}",
             matlabVersion: "{{.MATLABVersion}}"
         };

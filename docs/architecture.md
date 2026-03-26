@@ -269,7 +269,7 @@ Provides an interactive system shell in the browser via a WebSocket connection. 
    - **Binary messages** from the client carry resize commands (JSON `{"cols": N, "rows": N}`), which are applied via `TIOCSWINSZ` ioctl.
 4. When the WebSocket closes (tab closed, network loss), the shell process is killed.
 
-PTY allocation is platform-specific: Linux uses `TIOCSPTLCK`/`TIOCGPTN` ioctls, macOS uses `TIOCPTYGRANT`/`TIOCPTYUNLK`/`TIOCPTYGNAME`. Windows is not supported (stub returns an error).
+PTY allocation is platform-specific: Linux uses `TIOCSPTLCK`/`TIOCGPTN` ioctls, macOS uses `TIOCPTYGRANT`/`TIOCPTYUNLK`/`TIOCPTYGNAME`, and Windows uses the ConPTY API (`CreatePseudoConsole`, requires Windows 10 1809+). Each platform implements a `ptySession` struct with `Read`/`Write`/`Resize`/`Wait`/`Kill`/`Close` methods.
 
 The frontend uses [xterm.js](https://github.com/xtermjs/xterm.js) v5.5.0 (embedded in the binary) with the fit addon for automatic column/row sizing. The terminal is presented as a VS Code-style bottom drawer with three states: closed, open (split-screen with draggable divider), and minimized (thin bar, shell keeps running). Keyboard shortcut: ``Ctrl+` ``.
 

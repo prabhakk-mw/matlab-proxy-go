@@ -588,6 +588,7 @@ func (s *Server) buildTemplateData(r *http.Request) TemplateData {
 		AuthEnabled:       s.auth.Enabled(),
 		ErrorMessage:      errorMsg,
 		Warnings:          warnings,
+		TerminalEnabled:   terminal.Supported(),
 		ShowShutdownBtn:   true,
 		IdleTimeout:       s.cfg.IdleTimeoutMinutes * 60,
 		IdleTimeRemaining: s.session.IdleTimeRemaining(),

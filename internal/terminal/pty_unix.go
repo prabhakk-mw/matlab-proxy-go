@@ -12,9 +12,19 @@ import (
 	"unsafe"
 )
 
-// startWithPTY starts the command with a PTY as its stdin/stdout/stderr.
-// Returns the master end of the PTY for reading/writing.
-func startWithPTY(cmd *exec.Cmd) (*os.File, error) {
+// Supported reports whether the web terminal is available on this platform.
+func Supported() bool { return true }
+
+// ptySession wraps a PTY master and child process on Linux.
+type ptySession struct {
+	ptmx *os.File
+	cmd  *exec.Cmd
+}
+
+func newPTYSession(shell string) (*ptySession, error) {
+	cmd := exec.Command(shell)
+	cmd.Env = os.Environ()
+
 	ptmx, err := os.OpenFile("/dev/ptmx", os.O_RDWR, 0)
 	if err != nil {
 		return nil, fmt.Errorf("opening /dev/ptmx: %w", err)
@@ -52,14 +62,18 @@ func startWithPTY(cmd *exec.Cmd) (*os.File, error) {
 		return nil, fmt.Errorf("starting command: %w", err)
 	}
 
-	// Slave is now owned by the child process; close our copy.
 	slave.Close()
-
-	return ptmx, nil
+	return &ptySession{ptmx: ptmx, cmd: cmd}, nil
 }
 
-// resizePTY sets the terminal window size on the PTY master.
-func resizePTY(ptmx *os.File, cols, rows int) error {
+func (s *ptySession) Read(p []byte) (int, error)  { return s.ptmx.Read(p) }
+func (s *ptySession) Write(p []byte) (int, error) { return s.ptmx.Write(p) }
+func (s *ptySession) Wait() error                 { return s.cmd.Wait() }
+func (s *ptySession) Kill() error                  { return s.cmd.Process.Kill() }
+func (s *ptySession) Pid() int                     { return s.cmd.Process.Pid }
+func (s *ptySession) Close() error                 { return s.ptmx.Close() }
+
+func (s *ptySession) Resize(cols, rows int) error {
 	ws := struct {
 		Row    uint16
 		Col    uint16
@@ -69,7 +83,7 @@ func resizePTY(ptmx *os.File, cols, rows int) error {
 		Row: uint16(rows),
 		Col: uint16(cols),
 	}
-	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, ptmx.Fd(), syscall.TIOCSWINSZ, uintptr(unsafe.Pointer(&ws)))
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, s.ptmx.Fd(), syscall.TIOCSWINSZ, uintptr(unsafe.Pointer(&ws)))
 	if errno != 0 {
 		return fmt.Errorf("TIOCSWINSZ: %v", errno)
 	}

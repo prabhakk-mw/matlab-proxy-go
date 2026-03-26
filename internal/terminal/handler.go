@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -35,28 +36,25 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 	defer conn.Close()
 
 	shell := getShell()
-	cmd := exec.Command(shell)
-	cmd.Env = os.Environ()
-
-	ptmx, err := startWithPTY(cmd)
+	session, err := newPTYSession(shell)
 	if err != nil {
-		logger.Error("failed to start shell with PTY", "error", err)
+		logger.Error("failed to start terminal session", "error", err)
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("Error: "+err.Error()+"\r\n"))
 		return
 	}
-	defer ptmx.Close()
+	defer session.Close()
 
-	logger.Info("terminal session started", "shell", shell, "pid", cmd.Process.Pid)
+	logger.Info("terminal session started", "shell", shell, "pid", session.Pid())
 
 	var wg sync.WaitGroup
 
-	// PTY stdout → WebSocket
+	// Session output → WebSocket
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		buf := make([]byte, 4096)
 		for {
-			n, err := ptmx.Read(buf)
+			n, err := session.Read(buf)
 			if err != nil {
 				return
 			}
@@ -66,7 +64,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 		}
 	}()
 
-	// WebSocket → PTY stdin (text) or resize (binary)
+	// WebSocket → Session input (text) or resize (binary)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -74,20 +72,20 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 			msgType, data, err := conn.ReadMessage()
 			if err != nil {
 				// Client disconnected — kill the shell
-				_ = cmd.Process.Kill()
+				_ = session.Kill()
 				return
 			}
 
 			switch msgType {
 			case websocket.TextMessage:
-				if _, err := ptmx.Write(data); err != nil {
+				if _, err := session.Write(data); err != nil {
 					return
 				}
 			case websocket.BinaryMessage:
 				var msg resizeMsg
 				if err := json.Unmarshal(data, &msg); err == nil && msg.Cols > 0 && msg.Rows > 0 {
-					if err := resizePTY(ptmx, msg.Cols, msg.Rows); err != nil {
-						logger.Debug("PTY resize failed", "error", err)
+					if err := session.Resize(msg.Cols, msg.Rows); err != nil {
+						logger.Debug("terminal resize failed", "error", err)
 					}
 				}
 			}
@@ -95,8 +93,8 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 	}()
 
 	// Wait for the shell process to exit
-	_ = cmd.Wait()
-	logger.Info("terminal session ended", "pid", cmd.Process.Pid)
+	_ = session.Wait()
+	logger.Info("terminal session ended", "pid", session.Pid())
 
 	// Close the WebSocket to unblock readers
 	_ = conn.WriteMessage(websocket.CloseMessage,
@@ -107,6 +105,15 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 
 // getShell returns the user's shell, falling back to common defaults.
 func getShell() string {
+	if runtime.GOOS == "windows" {
+		if comspec := os.Getenv("COMSPEC"); comspec != "" {
+			return comspec
+		}
+		if ps, err := exec.LookPath("powershell.exe"); err == nil {
+			return ps
+		}
+		return "cmd.exe"
+	}
 	if sh := os.Getenv("SHELL"); sh != "" {
 		return sh
 	}

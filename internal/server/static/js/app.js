@@ -816,7 +816,7 @@
         }
 
         setupTrigger();
-        setupTerminalUI();
+        if (config.terminalEnabled) setupTerminalUI();
         setupMHLMListener();
         setupBeaconCleanup();
 
