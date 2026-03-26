@@ -41,7 +41,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 	ptmx, err := startWithPTY(cmd)
 	if err != nil {
 		logger.Error("failed to start shell with PTY", "error", err)
-		conn.WriteMessage(websocket.TextMessage, []byte("Error: "+err.Error()+"\r\n"))
+		_ = conn.WriteMessage(websocket.TextMessage, []byte("Error: "+err.Error()+"\r\n"))
 		return
 	}
 	defer ptmx.Close()
@@ -99,7 +99,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 	logger.Info("terminal session ended", "pid", cmd.Process.Pid)
 
 	// Close the WebSocket to unblock readers
-	conn.WriteMessage(websocket.CloseMessage,
+	_ = conn.WriteMessage(websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "shell exited"))
 
 	wg.Wait()
