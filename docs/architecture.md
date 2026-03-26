@@ -93,6 +93,12 @@ matlab-proxy-go/
 │   ├── session/
 │   │   └── session.go               Client concurrency control and idle timeout
 │   │
+│   ├── terminal/
+│   │   ├── handler.go               WebSocket handler, PTY-shell bridge
+│   │   ├── pty_unix.go              PTY allocation for Linux
+│   │   ├── pty_darwin.go            PTY allocation for macOS
+│   │   └── pty_windows.go           No-op stub for Windows
+│   │
 │   └── server/
 │       ├── server.go                HTTP server, route setup, all API handlers
 │       ├── serverinfo.go            Server info file write/remove for discovery
@@ -233,6 +239,7 @@ Uses chi for routing. All templates and static assets are embedded in the binary
 | DELETE | `/set_licensing_info` | Yes | Remove licensing |
 | DELETE | `/shutdown_integration` | Yes | Shut down the server |
 | POST | `/clear_client_id` | Yes | Release active client |
+| GET | `/terminal/ws` | Yes | WebSocket terminal (shell over PTY) |
 | `*` | `/*` | Yes | Proxy to MATLAB EC (HTTP or WebSocket) |
 
 **Middleware stack** (applied in order):
@@ -250,6 +257,23 @@ Each running server writes a `mwi_server.info` file to:
 ```
 
 The `matlab-proxy-list-servers` binary scans for these files and displays them. This is compatible with the Python version's `matlab-proxy-app-list-servers` command.
+
+### Terminal (`internal/terminal`)
+
+Provides an interactive system shell in the browser via a WebSocket connection. When a client connects to `/terminal/ws`, the handler:
+
+1. Upgrades the HTTP connection to a WebSocket.
+2. Spawns the user's shell (`$SHELL`, `bash`, or `sh`) attached to a PTY.
+3. Bridges I/O between the WebSocket and the PTY master fd:
+   - **Text messages** carry terminal data bidirectionally.
+   - **Binary messages** from the client carry resize commands (JSON `{"cols": N, "rows": N}`), which are applied via `TIOCSWINSZ` ioctl.
+4. When the WebSocket closes (tab closed, network loss), the shell process is killed.
+
+PTY allocation is platform-specific: Linux uses `TIOCSPTLCK`/`TIOCGPTN` ioctls, macOS uses `TIOCPTYGRANT`/`TIOCPTYUNLK`/`TIOCPTYGNAME`. Windows is not supported (stub returns an error).
+
+The frontend uses [xterm.js](https://github.com/xtermjs/xterm.js) v5.5.0 (embedded in the binary) with the fit addon for automatic column/row sizing. The terminal is presented as a VS Code-style bottom drawer with three states: closed, open (split-screen with draggable divider), and minimized (thin bar, shell keeps running). Keyboard shortcut: ``Ctrl+` ``.
+
+See [Web Terminal](terminal.md) for user-facing documentation.
 
 ### Frontend
 

@@ -24,6 +24,7 @@ import (
 	"github.com/mathworks/matlab-proxy-go/internal/matlab"
 	"github.com/mathworks/matlab-proxy-go/internal/proxy"
 	"github.com/mathworks/matlab-proxy-go/internal/session"
+	"github.com/mathworks/matlab-proxy-go/internal/terminal"
 )
 
 //go:embed all:static
@@ -207,6 +208,7 @@ func (s *Server) setupRoutes() http.Handler {
 			r.Delete("/set_licensing_info", s.handleDeleteLicensing)
 			r.Delete("/shutdown_integration", s.handleShutdown)
 			r.Post("/clear_client_id", s.handleClearClientID)
+			r.Get("/terminal/ws", s.handleTerminalWS)
 		})
 
 		// Serve the frontend UI
@@ -503,6 +505,11 @@ func (s *Server) handleClearClientID(w http.ResponseWriter, r *http.Request) {
 		s.session.ClearClient(req.ClientID)
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleTerminalWS(w http.ResponseWriter, r *http.Request) {
+	s.session.ResetIdleTimer()
+	terminal.HandleWebSocket(w, r, s.logger.With("component", "terminal"))
 }
 
 func (s *Server) handleMATLABProxy(w http.ResponseWriter, r *http.Request) {

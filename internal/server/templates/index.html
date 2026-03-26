@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.SessionName}}</title>
     <link rel="stylesheet" href="{{.PathPrefix}}/static/css/style.css">
+    <link rel="stylesheet" href="{{.PathPrefix}}/static/css/xterm.css">
 </head>
 <body>
     <!-- MATLAB iframe (when running) -->
@@ -210,6 +211,30 @@
         </div>
     </template>
 
+    <!-- Terminal drawer -->
+    <div id="terminal-drawer" class="terminal-drawer terminal-closed">
+        <div id="terminal-divider" class="terminal-divider">
+            <div class="terminal-divider-handle"></div>
+        </div>
+        <div class="terminal-header">
+            <div class="terminal-tabs">
+                <span class="terminal-tab active">Terminal</span>
+            </div>
+            <div class="terminal-actions">
+                <button id="terminal-minimize" class="terminal-action-btn" title="Minimize (Ctrl+`)">&#8211;</button>
+                <button id="terminal-close" class="terminal-action-btn" title="Close terminal">&times;</button>
+            </div>
+        </div>
+        <div id="terminal-container"></div>
+    </div>
+
+    <!-- Terminal toggle button -->
+    <button id="terminal-toggle" class="terminal-toggle-btn" title="Toggle Terminal (Ctrl+`)">
+        <span class="terminal-toggle-icon">&gt;_</span>
+    </button>
+
+    <script src="{{.PathPrefix}}/static/js/xterm.js"></script>
+    <script src="{{.PathPrefix}}/static/js/xterm-addon-fit.js"></script>
     <script src="{{.PathPrefix}}/static/js/app.js"></script>
     <script>
         window.MATLAB_PROXY = {

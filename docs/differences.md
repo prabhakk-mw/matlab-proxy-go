@@ -172,6 +172,9 @@ The timestamp-based concurrency model automatically recovers from client crashes
 ### Shutdown artifact cleanup
 The server automatically removes `connector.securePort` and extracted MATLAB scripts on shutdown, preventing stale artifacts from affecting subsequent launches. MATLAB log files are preserved for debugging.
 
+### Built-in web terminal
+An interactive system shell is available directly in the browser via a bottom-drawer panel. The terminal uses xterm.js with a WebSocket-to-PTY bridge, supporting resize, minimize (shell keeps running), and keyboard shortcut (``Ctrl+` ``). The Python version does not include a terminal. See [Web Terminal](terminal.md) for details.
+
 ---
 
 Copyright 2026 The MathWorks, Inc.

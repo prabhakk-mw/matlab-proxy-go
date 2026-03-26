@@ -16,6 +16,7 @@ Key features:
 - Token-based authentication with port-scoped session cookies
 - Concurrent browser session protection with automatic crash recovery
 - WebSocket proxy for MATLAB's Embedded Connector
+- Built-in [web terminal](docs/terminal.md) for shell access from the browser
 - Idle timeout with automatic shutdown
 - Xvfb/Fluxbox management for headless Linux environments
 - Clean shutdown with artifact cleanup
@@ -107,6 +108,7 @@ The server prints an access URL on startup. Open it in your browser.
 | [Architecture](docs/architecture.md) | System design, component map, request flows |
 | [Installation](docs/installation.md) | Building from source, cross-compilation, Docker |
 | [Usage](docs/usage.md) | Configuration, environment variables, CLI flags |
+| [Web Terminal](docs/terminal.md) | Built-in browser terminal for shell access |
 | [Differences from matlab-proxy](docs/differences.md) | What changed, what was removed, what was added |
 | [Releasing](docs/releasing.md) | Version strategy, tagging, pre-releases |
 | [TODO](docs/TODO.md) | Known gaps and planned improvements |

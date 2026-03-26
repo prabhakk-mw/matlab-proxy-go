@@ -528,6 +528,210 @@
         });
     }
 
+    // --- Terminal ---
+
+    let term = null;
+    let termSocket = null;
+    let termFitAddon = null;
+    let termState = "closed"; // closed | open | minimized
+
+    function initTerminal() {
+        var drawer = document.getElementById("terminal-drawer");
+        var container = document.getElementById("terminal-container");
+        var toggleBtn = document.getElementById("terminal-toggle");
+
+        // Set initial height from localStorage or default 40%
+        var savedHeight = localStorage.getItem("terminalHeight");
+        var height = savedHeight ? parseInt(savedHeight, 10) : Math.round(window.innerHeight * 0.4);
+        drawer.style.height = height + "px";
+
+        // Create xterm instance
+        term = new window.Terminal({
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: "'Cascadia Code', 'Fira Code', 'Source Code Pro', Menlo, monospace",
+            theme: {
+                background: "#1e1e1e",
+                foreground: "#d4d4d4",
+                cursor: "#aeafad"
+            }
+        });
+
+        termFitAddon = new window.FitAddon.FitAddon();
+        term.loadAddon(termFitAddon);
+        term.open(container);
+
+        // Connect WebSocket
+        var proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+        var wsUrl = proto + "//" + window.location.host + config.baseURL + "/terminal/ws";
+        if (authToken) {
+            wsUrl += "?mwi-auth-token=" + encodeURIComponent(authToken);
+        }
+        termSocket = new WebSocket(wsUrl);
+
+        termSocket.onopen = function() {
+            termFitAddon.fit();
+            // Send initial size
+            var dims = termFitAddon.proposeDimensions();
+            if (dims) {
+                termSocket.send(new Blob([JSON.stringify({cols: dims.cols, rows: dims.rows})]));
+            }
+        };
+
+        termSocket.onmessage = function(e) {
+            if (typeof e.data === "string") {
+                term.write(e.data);
+            } else if (e.data instanceof Blob) {
+                e.data.text().then(function(text) { term.write(text); });
+            }
+        };
+
+        termSocket.onclose = function() {
+            term.write("\r\n\x1b[90m[Session ended]\x1b[0m\r\n");
+            toggleBtn.classList.remove("terminal-active");
+        };
+
+        // Terminal input → WebSocket
+        term.onData(function(data) {
+            if (termSocket && termSocket.readyState === WebSocket.OPEN) {
+                termSocket.send(data);
+            }
+        });
+
+        // Handle resize
+        var resizeObserver = new ResizeObserver(function() {
+            if (termState === "open" && termFitAddon) {
+                termFitAddon.fit();
+                if (termSocket && termSocket.readyState === WebSocket.OPEN) {
+                    var dims = termFitAddon.proposeDimensions();
+                    if (dims) {
+                        termSocket.send(new Blob([JSON.stringify({cols: dims.cols, rows: dims.rows})]));
+                    }
+                }
+            }
+        });
+        resizeObserver.observe(container);
+
+        toggleBtn.classList.add("terminal-active");
+    }
+
+    function destroyTerminal() {
+        if (termSocket) {
+            termSocket.close();
+            termSocket = null;
+        }
+        if (term) {
+            term.dispose();
+            term = null;
+        }
+        termFitAddon = null;
+        var container = document.getElementById("terminal-container");
+        container.innerHTML = "";
+        document.getElementById("terminal-toggle").classList.remove("terminal-active");
+    }
+
+    function setTermState(state) {
+        var drawer = document.getElementById("terminal-drawer");
+        var frameContainer = document.getElementById("matlab-frame-container");
+
+        termState = state;
+
+        if (state === "closed") {
+            drawer.classList.add("terminal-closed");
+            drawer.classList.remove("terminal-minimized");
+            frameContainer.style.height = "100%";
+            destroyTerminal();
+        } else if (state === "minimized") {
+            drawer.classList.remove("terminal-closed");
+            drawer.classList.add("terminal-minimized");
+            frameContainer.style.height = "calc(100% - 36px)";
+        } else {
+            // open
+            drawer.classList.remove("terminal-closed");
+            drawer.classList.remove("terminal-minimized");
+            var height = parseInt(drawer.style.height, 10) || Math.round(window.innerHeight * 0.4);
+            frameContainer.style.height = "calc(100% - " + height + "px)";
+            if (termFitAddon) {
+                setTimeout(function() { termFitAddon.fit(); }, 50);
+            }
+        }
+    }
+
+    function toggleTerminal() {
+        if (termState === "closed") {
+            setTermState("open");
+            initTerminal();
+        } else if (termState === "minimized") {
+            setTermState("open");
+        } else {
+            setTermState("minimized");
+        }
+    }
+
+    function setupTerminalUI() {
+        var toggleBtn = document.getElementById("terminal-toggle");
+        var minimizeBtn = document.getElementById("terminal-minimize");
+        var closeBtn = document.getElementById("terminal-close");
+        var divider = document.getElementById("terminal-divider");
+        var drawer = document.getElementById("terminal-drawer");
+        var frameContainer = document.getElementById("matlab-frame-container");
+
+        toggleBtn.addEventListener("click", toggleTerminal);
+
+        minimizeBtn.addEventListener("click", function() {
+            if (termState === "minimized") {
+                setTermState("open");
+            } else {
+                setTermState("minimized");
+            }
+        });
+
+        closeBtn.addEventListener("click", function() {
+            setTermState("closed");
+        });
+
+        // Keyboard shortcut: Ctrl+`
+        document.addEventListener("keydown", function(e) {
+            if (e.ctrlKey && e.key === "`") {
+                e.preventDefault();
+                toggleTerminal();
+            }
+        });
+
+        // Draggable divider for resizing
+        divider.addEventListener("mousedown", function(e) {
+            e.preventDefault();
+            var startY = e.clientY;
+            var startHeight = parseInt(drawer.style.height, 10) || Math.round(window.innerHeight * 0.4);
+
+            function onMouseMove(e) {
+                var newHeight = startHeight + (startY - e.clientY);
+                var minH = 100;
+                var maxH = window.innerHeight - 80;
+                newHeight = Math.max(minH, Math.min(maxH, newHeight));
+                drawer.style.height = newHeight + "px";
+                frameContainer.style.height = "calc(100% - " + newHeight + "px)";
+            }
+
+            function onMouseUp() {
+                document.removeEventListener("mousemove", onMouseMove);
+                document.removeEventListener("mouseup", onMouseUp);
+                localStorage.setItem("terminalHeight", parseInt(drawer.style.height, 10));
+                if (termFitAddon) termFitAddon.fit();
+                // Send updated size
+                if (termSocket && termSocket.readyState === WebSocket.OPEN) {
+                    var dims = termFitAddon.proposeDimensions();
+                    if (dims) {
+                        termSocket.send(new Blob([JSON.stringify({cols: dims.cols, rows: dims.rows})]));
+                    }
+                }
+            }
+
+            document.addEventListener("mousemove", onMouseMove);
+            document.addEventListener("mouseup", onMouseUp);
+        });
+    }
+
     // --- Tab close cleanup ---
 
     function setupBeaconCleanup() {
@@ -612,6 +816,7 @@
         }
 
         setupTrigger();
+        setupTerminalUI();
         setupMHLMListener();
         setupBeaconCleanup();
 
