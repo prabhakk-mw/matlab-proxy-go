@@ -11,7 +11,7 @@
     <!-- MATLAB iframe (when running) -->
     <div id="matlab-frame-container">
         {{if and (eq .MATLABStatus "up") (not .AuthEnabled)}}
-        <iframe id="matlab-frame" src="{{.PathPrefix}}/index-jsd-cr.html" frameborder="0"></iframe>
+        <iframe id="matlab-frame" src="{{.PathPrefix}}/index-jsd-cr.html?mre={{.BaseURLEncoded}}&websocket=on" frameborder="0"></iframe>
         {{else}}
         <div id="matlab-placeholder">
             <img src="{{.PathPrefix}}/static/icons/matlab-logo.svg" alt="MATLAB" class="placeholder-logo" onerror="this.style.display='none'">
@@ -42,6 +42,7 @@
                     <span class="value status-badge status-{{.MATLABStatus}}">
                         {{if eq .MATLABStatus "up"}}Running
                         {{else if eq .MATLABStatus "starting"}}Starting...
+                        {{else if eq .MATLABStatus "stopping"}}Stopping...
                         {{else if eq .MATLABStatus "down"}}Not Running
                         {{else}}{{.MATLABStatus}}
                         {{end}}
@@ -89,13 +90,18 @@
                 {{if eq .LicensingType ""}}
                 <button class="btn btn-primary" onclick="showLicensing()">Configure License</button>
                 {{else}}
-                    {{if ne .MATLABStatus "starting"}}
-                    <button class="btn btn-primary" onclick="startMatlab()">
-                        {{if eq .MATLABStatus "up"}}Restart MATLAB{{else}}Start MATLAB{{end}}
-                    </button>
+                    {{if eq .MATLABStatus "down"}}
+                    <button class="btn btn-primary" onclick="startMatlab()">Start MATLAB</button>
                     {{end}}
                     {{if eq .MATLABStatus "up"}}
+                    <button class="btn btn-primary" onclick="restartMatlab()">Restart MATLAB</button>
                     <button class="btn btn-danger" onclick="stopMatlab()">Stop MATLAB</button>
+                    {{end}}
+                    {{if eq .MATLABStatus "starting"}}
+                    <button class="btn btn-danger" onclick="stopMatlab()" disabled>Stop MATLAB</button>
+                    {{end}}
+                    {{if eq .MATLABStatus "stopping"}}
+                    <button class="btn btn-primary" onclick="restartMatlab()">Restart MATLAB</button>
                     {{end}}
                     <button class="btn btn-secondary" onclick="showLicensing()">Change License</button>
                     <button class="btn btn-warning" onclick="removeLicense()">Sign Out</button>

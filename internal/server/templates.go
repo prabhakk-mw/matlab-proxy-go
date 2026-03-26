@@ -13,6 +13,7 @@ var templatesFS embed.FS
 
 type TemplateData struct {
 	BaseURL            string
+	BaseURLEncoded     string // URL-encoded fully qualified base URL for the mre query parameter
 	PathPrefix         string // BaseURL without trailing slash, for building asset paths
 	SessionName        string
 	MATLABVersion      string

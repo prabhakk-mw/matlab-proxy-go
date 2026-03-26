@@ -9,6 +9,7 @@ const (
 	StatusDown     Status = "down"
 	StatusStarting Status = "starting"
 	StatusUp       Status = "up"
+	StatusStopping Status = "stopping"
 )
 
 // BusyStatus represents whether MATLAB is busy executing user code.

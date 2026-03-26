@@ -102,13 +102,15 @@ func (p *Process) Connector() *EmbeddedConnector {
 func (p *Process) Start(restart bool) error {
 	p.mu.Lock()
 
-	if p.status == StatusStarting || p.status == StatusUp {
+	if p.status == StatusStarting || p.status == StatusUp || p.status == StatusStopping {
 		if !restart {
 			p.mu.Unlock()
 			return nil
 		}
+		// Force-kill when restarting from stopping state (stuck stop)
+		forceKill := p.status == StatusStopping
 		p.mu.Unlock()
-		if err := p.Stop(false); err != nil {
+		if err := p.Stop(forceKill); err != nil {
 			p.logger.Warn("error stopping MATLAB before restart", "error", err)
 		}
 		p.mu.Lock()
@@ -402,13 +404,16 @@ func (p *Process) Stop(forceQuit bool) error {
 	cmd := p.matlabCmd
 	ec := p.connector
 	wasStarting := p.status == StatusStarting
-	p.status = StatusDown
+	p.status = StatusStopping
 	p.mu.Unlock()
 
 	if cmd == nil || cmd.Process == nil {
 		if p.cancel != nil {
 			p.cancel()
 		}
+		p.mu.Lock()
+		p.status = StatusDown
+		p.mu.Unlock()
 		return nil
 	}
 
@@ -445,11 +450,14 @@ func (p *Process) Stop(forceQuit bool) error {
 		}
 	}
 
-	// Wait for the run goroutine to finish
+	// Wait for the run goroutine to finish (which sets StatusDown)
 	select {
 	case <-p.done:
 	case <-time.After(5 * time.Second):
 		p.logger.Warn("timed out waiting for MATLAB cleanup to finish")
+		p.mu.Lock()
+		p.status = StatusDown
+		p.mu.Unlock()
 	}
 
 	return nil

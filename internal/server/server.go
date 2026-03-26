@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -555,10 +556,20 @@ func (s *Server) buildTemplateData(r *http.Request) TemplateData {
 
 	pathPrefix := strings.TrimRight(s.cfg.BaseURL, "/")
 
+	// Build fully qualified base URL for the mre parameter.
+	// This tells MATLAB's Embedded Connector the proxy's base URL.
+	scheme := "http"
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	fullyQualifiedBaseURL := scheme + "://" + r.Host + pathPrefix
+	baseURLEncoded := url.QueryEscape(fullyQualifiedBaseURL)
+
 	mhlmOrigin := mhlmLoginOrigin()
 
 	return TemplateData{
 		BaseURL:           s.cfg.BaseURL,
+		BaseURLEncoded:    baseURLEncoded,
 		PathPrefix:        pathPrefix,
 		SessionName:       s.cfg.SessionName,
 		MATLABVersion:     s.cfg.MATLABVersion,

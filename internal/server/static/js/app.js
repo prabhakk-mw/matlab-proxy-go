@@ -103,9 +103,11 @@
 
         // Update iframe if MATLAB is up and we're active
         if (status === "up" && !existingFrame) {
-            var iframeSrc = config.baseURL + '/index-jsd-cr.html';
+            // Build the fully qualified base URL for the mre parameter
+            var baseUrl = window.location.protocol + '//' + window.location.host + config.baseURL;
+            var iframeSrc = config.baseURL + '/index-jsd-cr.html?mre=' + encodeURIComponent(baseUrl) + '&websocket=on';
             if (authToken) {
-                iframeSrc += '?mwi-auth-token=' + encodeURIComponent(authToken);
+                iframeSrc += '&mwi-auth-token=' + encodeURIComponent(authToken);
             }
             container.innerHTML = '<iframe id="matlab-frame" src="' + iframeSrc + '" frameborder="0"></iframe>';
         } else if (status !== "up" && existingFrame) {
@@ -145,6 +147,7 @@
             badge.className = "value status-badge status-" + status;
             if (status === "up") badge.textContent = "Running";
             else if (status === "starting") badge.textContent = "Starting...";
+            else if (status === "stopping") badge.textContent = "Stopping...";
             else if (status === "down") badge.textContent = "Not Running";
             else badge.textContent = status;
         }
@@ -192,6 +195,34 @@
             if (warningSection) warningSection.innerHTML = warnings.map(function(w) { return '<div class="warning-banner">' + escapeHtml(w) + '</div>'; }).join("");
         } else if (warningSection) {
             warningSection.remove();
+        }
+
+        // Update controls based on MATLAB status
+        var controlsEl = document.querySelector("#overlay-body .controls");
+        if (controlsEl) {
+            var licType = licensing.type || "";
+            var buttons = "";
+            if (!licType) {
+                buttons += '<button class="btn btn-primary" onclick="showLicensing()">Configure License</button>';
+            } else {
+                if (status === "down") {
+                    buttons += '<button class="btn btn-primary" onclick="startMatlab()">Start MATLAB</button>';
+                }
+                if (status === "up") {
+                    buttons += '<button class="btn btn-primary" onclick="restartMatlab()">Restart MATLAB</button>';
+                    buttons += '<button class="btn btn-danger" onclick="stopMatlab()">Stop MATLAB</button>';
+                }
+                if (status === "starting") {
+                    buttons += '<button class="btn btn-danger" onclick="stopMatlab()" disabled>Stop MATLAB</button>';
+                }
+                if (status === "stopping") {
+                    buttons += '<button class="btn btn-primary" onclick="restartMatlab()">Restart MATLAB</button>';
+                }
+                buttons += '<button class="btn btn-secondary" onclick="showLicensing()">Change License</button>';
+                buttons += '<button class="btn btn-warning" onclick="removeLicense()">Sign Out</button>';
+            }
+            buttons += '<button class="btn btn-danger" onclick="confirmShutdown()">Shutdown</button>';
+            controlsEl.innerHTML = buttons;
         }
     }
 
@@ -308,6 +339,13 @@
     window.startMatlab = function() {
         api("PUT", "/start_matlab", {});
         closeOverlay();
+    };
+
+    window.restartMatlab = function() {
+        showConfirm("Restart MATLAB", "Are you sure you want to restart MATLAB? Any unsaved work will be lost.", function() {
+            api("PUT", "/start_matlab", {});
+            showStatusPanel();
+        });
     };
 
     window.stopMatlab = function() {
