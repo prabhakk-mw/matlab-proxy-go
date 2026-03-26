@@ -704,6 +704,10 @@
             var startY = e.clientY;
             var startHeight = parseInt(drawer.style.height, 10) || Math.round(window.innerHeight * 0.4);
 
+            // Disable pointer events on iframes so they don't steal mousemove during drag
+            var matlabFrame = document.getElementById("matlab-frame");
+            if (matlabFrame) matlabFrame.style.pointerEvents = "none";
+
             function onMouseMove(e) {
                 var newHeight = startHeight + (startY - e.clientY);
                 var minH = 100;
@@ -716,6 +720,8 @@
             function onMouseUp() {
                 document.removeEventListener("mousemove", onMouseMove);
                 document.removeEventListener("mouseup", onMouseUp);
+                // Re-enable pointer events on the iframe
+                if (matlabFrame) matlabFrame.style.pointerEvents = "";
                 localStorage.setItem("terminalHeight", parseInt(drawer.style.height, 10));
                 if (termFitAddon) termFitAddon.fit();
                 // Send updated size
