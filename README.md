@@ -23,18 +23,32 @@ Key features:
 
 ## Quick Start
 
-### Option 1: Install script (Linux / macOS)
+### Option 1: Install script
 
-The install script automatically downloads the latest release for your platform:
+The install script automatically downloads the latest release for your platform.
+
+**Linux / macOS:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.ps1 | iex"
+```
+
 To install a specific version or to a custom directory:
 
 ```bash
+# Linux / macOS
 curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | VERSION=0.5.1 INSTALL_DIR=/usr/local/bin sh
+```
+
+```powershell
+# Windows
+$env:VERSION = "0.5.1"; $env:INSTALL_DIR = "C:\Tools"; irm https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.ps1 | iex
 ```
 
 ### Option 2: Install from a package (Linux)
