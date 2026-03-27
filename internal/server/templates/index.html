@@ -217,17 +217,24 @@
         <div id="terminal-divider" class="terminal-divider">
             <div class="terminal-divider-handle"></div>
         </div>
-        <div class="terminal-header">
-            <div id="terminal-tabs" class="terminal-tabs"></div>
-            <span id="terminal-tab-add" class="terminal-tab-add" title="New terminal">+
-                <div id="shell-picker" class="shell-picker"></div>
-            </span>
-            <div class="terminal-actions">
-                <button id="terminal-minimize" class="terminal-action-btn" title="Minimize (Ctrl+`)">&#8211;</button>
-                <button id="terminal-close" class="terminal-action-btn" title="Close terminal">&times;</button>
+        <div class="terminal-inner">
+            <div class="terminal-header">
+                <div id="terminal-tabs" class="terminal-tabs"></div>
+                <span id="terminal-tab-add" class="terminal-tab-add" title="New terminal">+
+                    <div id="shell-picker" class="shell-picker"></div>
+                </span>
+                <div class="terminal-actions">
+                    <div class="terminal-dock-buttons">
+                        <button class="terminal-dock-btn" data-dock="left" title="Dock left">&#9664;</button>
+                        <button class="terminal-dock-btn active" data-dock="bottom" title="Dock bottom">&#9660;</button>
+                        <button class="terminal-dock-btn" data-dock="right" title="Dock right">&#9654;</button>
+                    </div>
+                    <button id="terminal-minimize" class="terminal-action-btn" title="Minimize (Ctrl+`)">&#8211;</button>
+                    <button id="terminal-close" class="terminal-action-btn" title="Close terminal">&times;</button>
+                </div>
             </div>
+            <div id="terminal-panes" class="terminal-panes"></div>
         </div>
-        <div id="terminal-panes" class="terminal-panes"></div>
     </div>
 
     <!-- Terminal toggle button -->

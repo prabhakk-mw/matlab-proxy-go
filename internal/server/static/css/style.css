@@ -22,6 +22,7 @@ body {
     width: 100%;
     height: 100%;
     z-index: 1;
+    transition: width 0.2s ease, height 0.2s ease, left 0.2s ease;
 }
 
 #matlab-frame {
@@ -323,7 +324,69 @@ p {
     display: flex;
     flex-direction: column;
     background: #1e1e1e;
-    transition: height 0.2s ease;
+    transition: height 0.2s ease, width 0.2s ease;
+}
+
+/* Dock positions */
+.terminal-dock-left,
+.terminal-dock-right {
+    top: 0;
+    bottom: 0;
+    width: 40%;
+    height: 100% !important;
+    flex-direction: row;
+}
+
+.terminal-dock-left {
+    left: 0;
+    right: auto;
+    border-right: 1px solid #3c3c3c;
+}
+
+.terminal-dock-right {
+    left: auto;
+    right: 0;
+    border-left: 1px solid #3c3c3c;
+}
+
+.terminal-dock-left .terminal-divider,
+.terminal-dock-right .terminal-divider {
+    height: auto;
+    width: 6px;
+    cursor: col-resize;
+    flex-shrink: 0;
+    order: 2;
+}
+
+.terminal-dock-left .terminal-divider {
+    order: 2;
+}
+
+.terminal-dock-right .terminal-divider {
+    order: -1;
+}
+
+.terminal-dock-left .terminal-inner {
+    order: 1;
+}
+
+.terminal-dock-right .terminal-inner {
+    order: 1;
+}
+
+.terminal-dock-left .terminal-divider .terminal-divider-handle,
+.terminal-dock-right .terminal-divider .terminal-divider-handle {
+    width: 3px;
+    height: 40px;
+}
+
+/* Inner wrapper (header + panes) */
+.terminal-inner {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
 }
 
 .terminal-closed {
@@ -334,8 +397,27 @@ p {
     height: 36px !important;
 }
 
+.terminal-minimized.terminal-dock-left,
+.terminal-minimized.terminal-dock-right {
+    width: 36px !important;
+    height: 100% !important;
+}
+
 .terminal-minimized .terminal-panes {
     display: none;
+}
+
+.terminal-minimized.terminal-dock-left .terminal-header,
+.terminal-minimized.terminal-dock-right .terminal-header {
+    display: none;
+}
+
+.terminal-minimized.terminal-dock-left .terminal-divider,
+.terminal-minimized.terminal-dock-right .terminal-divider {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    cursor: pointer;
 }
 
 .terminal-divider {
@@ -346,6 +428,7 @@ p {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    z-index: 1;
 }
 
 .terminal-divider-handle {
@@ -471,6 +554,41 @@ p {
 .terminal-actions {
     display: flex;
     gap: 2px;
+    align-items: center;
+}
+
+.terminal-dock-buttons {
+    display: flex;
+    gap: 0;
+    margin-right: 4px;
+    border: 1px solid #3c3c3c;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.terminal-dock-btn {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 0.7rem;
+    cursor: pointer;
+    padding: 2px 5px;
+    line-height: 1;
+    border-right: 1px solid #3c3c3c;
+}
+
+.terminal-dock-btn:last-child {
+    border-right: none;
+}
+
+.terminal-dock-btn:hover {
+    color: #ccc;
+    background: #333;
+}
+
+.terminal-dock-btn.active {
+    color: #fff;
+    background: #094771;
 }
 
 .terminal-action-btn {

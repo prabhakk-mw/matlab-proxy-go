@@ -534,6 +534,7 @@
     var activeTermId = null;
     var termNextId = 1;
     var termState = "closed"; // closed | open | minimized
+    var termDockPosition = localStorage.getItem("terminalDockPosition") || "bottom"; // bottom | left | right
     var availableShells = []; // [{name, command}]
 
     function renameTab(session) {
@@ -690,7 +691,13 @@
             if (s.id === id) {
                 s.paneEl.classList.add("active");
                 s.tabEl.classList.add("active");
-                setTimeout(function() { s.fitAddon.fit(); s.term.focus(); }, 50);
+                setTimeout(function() {
+                    s.fitAddon.fit();
+                    // Don't steal focus if a tab rename input is active
+                    if (!document.querySelector(".tab-rename-input")) {
+                        s.term.focus();
+                    }
+                }, 50);
             } else {
                 s.paneEl.classList.remove("active");
                 s.tabEl.classList.remove("active");
@@ -743,27 +750,74 @@
         }
     }
 
+    function applyDockPosition() {
+        var drawer = document.getElementById("terminal-drawer");
+        drawer.classList.remove("terminal-dock-left", "terminal-dock-right");
+        if (termDockPosition === "left") {
+            drawer.classList.add("terminal-dock-left");
+        } else if (termDockPosition === "right") {
+            drawer.classList.add("terminal-dock-right");
+        }
+        // Update active dock button
+        document.querySelectorAll(".terminal-dock-btn").forEach(function(btn) {
+            btn.classList.toggle("active", btn.dataset.dock === termDockPosition);
+        });
+    }
+
+    function resetFrameContainer() {
+        var frameContainer = document.getElementById("matlab-frame-container");
+        frameContainer.style.height = "100%";
+        frameContainer.style.width = "100%";
+        frameContainer.style.left = "0";
+    }
+
     function setTermState(state) {
         var drawer = document.getElementById("terminal-drawer");
         var frameContainer = document.getElementById("matlab-frame-container");
 
         termState = state;
+        applyDockPosition();
 
         if (state === "closed") {
             drawer.classList.add("terminal-closed");
             drawer.classList.remove("terminal-minimized");
-            frameContainer.style.height = "100%";
+            resetFrameContainer();
             destroyAllTerminals();
         } else if (state === "minimized") {
             drawer.classList.remove("terminal-closed");
             drawer.classList.add("terminal-minimized");
-            frameContainer.style.height = "calc(100% - 36px)";
+            if (termDockPosition === "bottom") {
+                resetFrameContainer();
+                frameContainer.style.height = "calc(100% - 36px)";
+            } else if (termDockPosition === "left") {
+                resetFrameContainer();
+                frameContainer.style.left = "36px";
+                frameContainer.style.width = "calc(100% - 36px)";
+            } else {
+                resetFrameContainer();
+                frameContainer.style.width = "calc(100% - 36px)";
+            }
         } else {
             // open
             drawer.classList.remove("terminal-closed");
             drawer.classList.remove("terminal-minimized");
-            var height = parseInt(drawer.style.height, 10) || Math.round(window.innerHeight * 0.4);
-            frameContainer.style.height = "calc(100% - " + height + "px)";
+            resetFrameContainer();
+            if (termDockPosition === "bottom") {
+                var height = parseInt(drawer.style.height, 10) || Math.round(window.innerHeight * 0.4);
+                drawer.style.height = height + "px";
+                drawer.style.width = "100%";
+                frameContainer.style.height = "calc(100% - " + height + "px)";
+            } else {
+                var width = parseInt(drawer.dataset.sideWidth, 10) || Math.round(window.innerWidth * 0.4);
+                drawer.style.width = width + "px";
+                drawer.style.height = "100%";
+                if (termDockPosition === "left") {
+                    frameContainer.style.left = width + "px";
+                    frameContainer.style.width = "calc(100% - " + width + "px)";
+                } else {
+                    frameContainer.style.width = "calc(100% - " + width + "px)";
+                }
+            }
             var active = termSessions.find(function(s) { return s.id === activeTermId; });
             if (active) {
                 setTimeout(function() { active.fitAddon.fit(); }, 50);
@@ -812,6 +866,14 @@
         });
     }
 
+    function setDockPosition(pos) {
+        termDockPosition = pos;
+        localStorage.setItem("terminalDockPosition", pos);
+        if (termState === "open" || termState === "minimized") {
+            setTermState(termState);
+        }
+    }
+
     function setupTerminalUI() {
         var toggleBtn = document.getElementById("terminal-toggle");
         var minimizeBtn = document.getElementById("terminal-minimize");
@@ -821,10 +883,16 @@
         var frameContainer = document.getElementById("matlab-frame-container");
         var addBtn = document.getElementById("terminal-tab-add");
 
-        // Set initial drawer height
+        // Set initial drawer height and side width
         var savedHeight = localStorage.getItem("terminalHeight");
         var height = savedHeight ? parseInt(savedHeight, 10) : Math.round(window.innerHeight * 0.4);
         drawer.style.height = height + "px";
+
+        var savedWidth = localStorage.getItem("terminalSideWidth");
+        drawer.dataset.sideWidth = savedWidth || Math.round(window.innerWidth * 0.4);
+
+        // Apply saved dock position to buttons
+        applyDockPosition();
 
         toggleBtn.addEventListener("click", toggleTerminal);
 
@@ -838,6 +906,14 @@
 
         closeBtn.addEventListener("click", function() {
             setTermState("closed");
+        });
+
+        // Dock position buttons
+        document.querySelectorAll(".terminal-dock-btn").forEach(function(btn) {
+            btn.addEventListener("click", function(e) {
+                e.stopPropagation();
+                setDockPosition(btn.dataset.dock);
+            });
         });
 
         // New tab button — show shell picker
@@ -867,26 +943,55 @@
         // Draggable divider for resizing
         divider.addEventListener("mousedown", function(e) {
             e.preventDefault();
+            var startX = e.clientX;
             var startY = e.clientY;
             var startHeight = parseInt(drawer.style.height, 10) || Math.round(window.innerHeight * 0.4);
+            var startWidth = parseInt(drawer.dataset.sideWidth, 10) || Math.round(window.innerWidth * 0.4);
 
             var matlabFrame = document.getElementById("matlab-frame");
             if (matlabFrame) matlabFrame.style.pointerEvents = "none";
+            drawer.style.transition = "none";
+            frameContainer.style.transition = "none";
 
             function onMouseMove(e) {
-                var newHeight = startHeight + (startY - e.clientY);
-                var minH = 100;
-                var maxH = window.innerHeight - 80;
-                newHeight = Math.max(minH, Math.min(maxH, newHeight));
-                drawer.style.height = newHeight + "px";
-                frameContainer.style.height = "calc(100% - " + newHeight + "px)";
+                if (termDockPosition === "bottom") {
+                    var newHeight = startHeight + (startY - e.clientY);
+                    var minH = 100;
+                    var maxH = window.innerHeight - 80;
+                    newHeight = Math.max(minH, Math.min(maxH, newHeight));
+                    drawer.style.height = newHeight + "px";
+                    frameContainer.style.height = "calc(100% - " + newHeight + "px)";
+                } else if (termDockPosition === "left") {
+                    var newWidth = startWidth + (e.clientX - startX);
+                    var minW = 150;
+                    var maxW = window.innerWidth - 200;
+                    newWidth = Math.max(minW, Math.min(maxW, newWidth));
+                    drawer.style.width = newWidth + "px";
+                    drawer.dataset.sideWidth = newWidth;
+                    frameContainer.style.left = newWidth + "px";
+                    frameContainer.style.width = "calc(100% - " + newWidth + "px)";
+                } else {
+                    var newWidth = startWidth + (startX - e.clientX);
+                    var minW = 150;
+                    var maxW = window.innerWidth - 200;
+                    newWidth = Math.max(minW, Math.min(maxW, newWidth));
+                    drawer.style.width = newWidth + "px";
+                    drawer.dataset.sideWidth = newWidth;
+                    frameContainer.style.width = "calc(100% - " + newWidth + "px)";
+                }
             }
 
             function onMouseUp() {
                 document.removeEventListener("mousemove", onMouseMove);
                 document.removeEventListener("mouseup", onMouseUp);
                 if (matlabFrame) matlabFrame.style.pointerEvents = "";
-                localStorage.setItem("terminalHeight", parseInt(drawer.style.height, 10));
+                drawer.style.transition = "";
+                frameContainer.style.transition = "";
+                if (termDockPosition === "bottom") {
+                    localStorage.setItem("terminalHeight", parseInt(drawer.style.height, 10));
+                } else {
+                    localStorage.setItem("terminalSideWidth", drawer.dataset.sideWidth);
+                }
                 var active = termSessions.find(function(s) { return s.id === activeTermId; });
                 if (active) {
                     active.fitAddon.fit();
