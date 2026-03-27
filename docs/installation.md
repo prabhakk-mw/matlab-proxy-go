@@ -5,9 +5,11 @@
 - **MATLAB** installed on the target machine (R2020b or later)
 - **Linux:** Xvfb (recommended for headless environments)
 
-## Install Script (Linux / macOS)
+## Install Script
 
-The easiest way to install. The script detects your OS and architecture, fetches the latest release from GitHub, and installs the binary to `~/.local/bin`:
+The easiest way to install. The script detects your OS and architecture, fetches the latest release from GitHub, and installs the binary to `~/.local/bin`.
+
+### Linux / macOS
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.sh | sh
@@ -27,6 +29,27 @@ curl -fsSL https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/in
 ```
 
 The script uses `sudo` only if the install directory is not writable by the current user.
+
+### Windows (PowerShell)
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.ps1 | iex"
+```
+
+Customize with environment variables:
+
+```powershell
+# Install a specific version
+$env:VERSION = "0.5.1"; irm https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.ps1 | iex
+
+# Install to a custom directory
+$env:INSTALL_DIR = "C:\Tools"; irm https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.ps1 | iex
+
+# Don't modify PATH
+$env:MWI_NO_MODIFY_PATH = "1"; irm https://raw.githubusercontent.com/prabhakk-mw/matlab-proxy-go/main/install.ps1 | iex
+```
+
+The script automatically adds the install directory to your user-level `PATH` via the Windows registry. Restart your shell or run the printed command to pick up the change immediately.
 
 ## Download a Pre-Built Binary
 
