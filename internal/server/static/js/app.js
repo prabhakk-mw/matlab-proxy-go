@@ -549,7 +549,10 @@
         input.focus();
         input.select();
 
+        var committed = false;
         function commit() {
+            if (committed) return;
+            committed = true;
             var val = input.value.trim();
             if (val) session.name = val;
             var newLabel = document.createElement("span");
@@ -837,7 +840,6 @@
     }
 
     function loadAvailableShells(callback) {
-        if (availableShells.length > 0) { callback(); return; }
         api("GET", "/terminal/shells").then(function(data) {
             if (data && Array.isArray(data)) {
                 availableShells = data;
@@ -932,8 +934,16 @@
             document.getElementById("shell-picker").classList.remove("open");
         });
 
-        // Keyboard shortcut: Ctrl+`
+        // Keyboard shortcut: Ctrl+` and Escape to close shell picker
         document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") {
+                var picker = document.getElementById("shell-picker");
+                if (picker.classList.contains("open")) {
+                    picker.classList.remove("open");
+                    e.preventDefault();
+                    return;
+                }
+            }
             if (e.ctrlKey && e.key === "`") {
                 e.preventDefault();
                 toggleTerminal();

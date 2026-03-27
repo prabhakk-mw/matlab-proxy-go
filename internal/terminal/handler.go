@@ -143,12 +143,14 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request, logger *slog.Logger
 	wg.Wait()
 }
 
-// resolveShell returns the requested shell if valid, otherwise the user's
-// default shell.
+// resolveShell returns the requested shell if it matches an allowed shell,
+// otherwise the user's default shell.
 func resolveShell(requested string) string {
 	if requested != "" {
-		if path, err := exec.LookPath(requested); err == nil {
-			return path
+		for _, s := range AvailableShells() {
+			if requested == s.Command || requested == s.Name {
+				return s.Command
+			}
 		}
 	}
 	return defaultShell()
