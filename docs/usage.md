@@ -24,6 +24,57 @@ Access MATLAB at: http://localhost:8080/?mwi-auth-token=<token>
 
 Open this URL in a browser to access MATLAB.
 
+## Attach Mode
+
+Attach mode connects matlab-proxy to an **already-running MATLAB session** instead of spawning a new one. This is useful when you have MATLAB open and want to access it through the browser without restarting it.
+
+### Setup
+
+**Step 1:** Run the setup script in your MATLAB command window:
+
+```matlab
+run('/path/to/matlab-proxy-go/scripts/enable_connect.m')
+```
+
+The script:
+1. Creates a temporary log directory for the Embedded Connector port file
+2. Generates a unique API key (`MWAPIKEY`)
+3. Configures the Embedded Connector environment (`MW_DOCROOT`, `MW_CONNECTOR_CONTEXT_ROOT`, etc.)
+4. Starts the Embedded Connector inside your MATLAB session
+5. Prints the `--ec-port` and `--mwapikey` values you need
+
+**Step 2:** Start the proxy with the printed values:
+
+```bash
+# Using CLI flags
+matlab-proxy --ec-port 31516 --mwapikey d091bb44-e7e1-2082-e9d3-a1e24ba9dc81
+
+# Or using environment variables
+MWI_ATTACH_EC_PORT=31516 MWI_ATTACH_MWAPIKEY=d091bb44-e7e1-2082-e9d3-a1e24ba9dc81 matlab-proxy
+```
+
+CLI flags take precedence over environment variables. Both `--ec-port` and `--mwapikey` (or their env var equivalents) must be provided together.
+
+### Behavior Differences in Attach Mode
+
+| Behavior | Normal Mode | Attach Mode |
+|---|---|---|
+| MATLAB lifecycle | Proxy spawns and owns the MATLAB process | Proxy connects to an existing MATLAB; does not own it |
+| Licensing | Configured via UI or env vars | Automatically set to "Existing License" (MATLAB is already licensed) |
+| Stop / Disconnect | Sends `exit` to MATLAB, kills the process | Disconnects the proxy; MATLAB and the EC keep running |
+| Reconnect | Restarts MATLAB from scratch | Re-attaches to the same EC (same port and key) |
+| Server shutdown | Stops MATLAB, cleans up session files | Disconnects from EC; MATLAB keeps running; no file cleanup |
+| EC health monitoring | Monitors child process exit | Detects EC unreachable after 5 consecutive ping failures → status transitions to `down` |
+| UI controls | Start, Stop, Restart, Change License, Sign Out | Disconnect, Reconnect |
+
+### Known Limitations
+
+> **Important:** Once the Embedded Connector's web desktop is activated in a MATLAB session, the original MATLAB desktop command window becomes unresponsive. This is a MATLAB limitation — the web desktop takes exclusive control of the command evaluator. The original command window will **not** recover, even after disconnecting from matlab-proxy or stopping the Embedded Connector. To restore the original MATLAB desktop, you must restart MATLAB.
+
+- Attach mode requires the user to manually run a setup script in MATLAB before connecting.
+- The `--ec-port` and `--mwapikey` values are specific to the MATLAB session. If MATLAB is restarted, `enable_connect.m` must be run again.
+- MATLAB version detection is not available in attach mode (the proxy does not know the MATLAB installation path). The version will show as empty in the UI.
+
 ## Listing Running Servers
 
 ```bash
@@ -98,6 +149,15 @@ These variables pre-configure licensing at startup. If none are set, the user is
 | Variable | Default | Description |
 |---|---|---|
 | `MWI_SHUTDOWN_ON_IDLE_TIMEOUT` | *(disabled)* | Minutes of inactivity before auto-shutdown |
+
+### Attach Mode
+
+| Variable | Default | Description |
+|---|---|---|
+| `MWI_ATTACH_EC_PORT` | *(none)* | Embedded Connector port (CLI: `--ec-port`) |
+| `MWI_ATTACH_MWAPIKEY` | *(none)* | API key for EC authentication (CLI: `--mwapikey`) |
+
+Both must be provided together. See [Attach Mode](#attach-mode) above for the full workflow.
 
 ### Advanced / Experimental
 

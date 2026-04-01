@@ -39,6 +39,7 @@ type Process struct {
 	warnings    []string
 	extraEnv    map[string]string // Additional env vars (e.g. MHLM credentials)
 	mwapikey    string            // API key for the Embedded Connector
+	attached    bool              // true when connected to an external MATLAB (not spawned by us)
 
 	cancel context.CancelFunc
 	done   chan struct{}
@@ -140,6 +141,129 @@ func (p *Process) Start(restart bool) error {
 	go p.run(ctx)
 
 	return nil
+}
+
+// Attach connects to an already-running MATLAB Embedded Connector
+// instead of spawning a new MATLAB process. The proxy does not own
+// the MATLAB lifecycle — Stop() will disconnect without exiting MATLAB.
+func (p *Process) Attach(port int, mwapikey string) error {
+	p.mu.Lock()
+	if p.status != StatusDown {
+		p.mu.Unlock()
+		return fmt.Errorf("cannot attach: MATLAB process is in state %q", p.status)
+	}
+	p.status = StatusStarting
+	p.errors = nil
+	p.warnings = nil
+	p.attached = true
+	p.mwapikey = mwapikey
+	p.mu.Unlock()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	p.cancel = cancel
+	p.done = make(chan struct{})
+
+	go p.runAttached(ctx, port, mwapikey)
+	return nil
+}
+
+// IsAttached returns true if the proxy is connected to an externally-managed MATLAB.
+func (p *Process) IsAttached() bool {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.attached
+}
+
+func (p *Process) runAttached(ctx context.Context, port int, mwapikey string) {
+	defer close(p.done)
+
+	ec := NewEmbeddedConnector(port, mwapikey)
+
+	// Verify connectivity with ping
+	timeout := time.After(30 * time.Second)
+	for {
+		select {
+		case <-ctx.Done():
+			p.mu.Lock()
+			p.status = StatusDown
+			p.mu.Unlock()
+			return
+		case <-timeout:
+			p.setError(ErrorInfo{
+				Message: fmt.Sprintf("Timed out connecting to MATLAB Embedded Connector at port %d", port),
+				Type:    "AttachError",
+			})
+			return
+		case <-time.After(config.StatusPollInterval):
+			alive, err := ec.Ping()
+			if err != nil {
+				p.logger.Debug("attach: EC ping failed", "error", err)
+				continue
+			}
+			if alive {
+				p.mu.Lock()
+				p.connector = ec
+				p.status = StatusUp
+				p.mu.Unlock()
+				p.logger.Info("attached to MATLAB Embedded Connector", "port", port)
+
+				// Monitor EC health — blocks until EC becomes unreachable or ctx is cancelled
+				p.monitorAttachedEC(ctx)
+				return
+			}
+		}
+	}
+}
+
+// monitorAttachedEC polls the EC for busy status and detects when the
+// external MATLAB process exits (EC becomes unreachable).
+func (p *Process) monitorAttachedEC(ctx context.Context) {
+	ticker := time.NewTicker(config.StatusPollInterval)
+	defer ticker.Stop()
+
+	consecutiveFailures := 0
+	const maxFailures = 5
+
+	for {
+		select {
+		case <-ctx.Done():
+			p.mu.Lock()
+			p.status = StatusDown
+			p.busyStatus = nil
+			p.connector = nil
+			p.mu.Unlock()
+			return
+		case <-ticker.C:
+			ec := p.Connector()
+			if ec == nil {
+				return
+			}
+			status, err := ec.GetBusyStatus()
+			if err != nil {
+				alive, pingErr := ec.Ping()
+				if pingErr != nil || !alive {
+					consecutiveFailures++
+					if consecutiveFailures >= maxFailures {
+						p.logger.Warn("MATLAB Embedded Connector unreachable, detaching", "consecutiveFailures", consecutiveFailures)
+						p.mu.Lock()
+						p.status = StatusDown
+						p.busyStatus = nil
+						p.connector = nil
+						p.mu.Unlock()
+						return
+					}
+					p.mu.Lock()
+					p.busyStatus = nil
+					p.mu.Unlock()
+				}
+				continue
+			}
+			consecutiveFailures = 0
+			p.mu.Lock()
+			p.busyStatus = &status
+			p.mu.Unlock()
+		}
+	}
 }
 
 func (p *Process) run(ctx context.Context) {
@@ -404,15 +528,26 @@ func (p *Process) Stop(forceQuit bool) error {
 	cmd := p.matlabCmd
 	ec := p.connector
 	wasStarting := p.status == StatusStarting
+	attached := p.attached
 	p.status = StatusStopping
 	p.mu.Unlock()
 
-	if cmd == nil || cmd.Process == nil {
+	// In attach mode (or when cmd is nil), just cancel the context to
+	// stop monitoring. We don't own the MATLAB process so we never
+	// send exit or kill.
+	if attached || cmd == nil || cmd.Process == nil {
 		if p.cancel != nil {
 			p.cancel()
 		}
+		// Wait for the goroutine to finish cleanup
+		select {
+		case <-p.done:
+		case <-time.After(5 * time.Second):
+		}
 		p.mu.Lock()
 		p.status = StatusDown
+		p.busyStatus = nil
+		p.connector = nil
 		p.mu.Unlock()
 		return nil
 	}

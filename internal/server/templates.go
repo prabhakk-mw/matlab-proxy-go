@@ -34,6 +34,7 @@ type TemplateData struct {
 	TerminalEnabled    bool
 	MHLMLoginURL       string // e.g. https://login.mathworks.com/embedded-login/v2/login.html
 	MHLMLoginOrigin    string // e.g. https://login.mathworks.com
+	AttachMode         bool
 }
 
 type EntitlementData struct {

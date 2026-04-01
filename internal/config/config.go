@@ -69,9 +69,19 @@ type Config struct {
 	EnableSimulink      bool
 	ProfileStartup      bool
 
+	// Attach mode — connect to existing MATLAB EC instead of spawning
+	AttachECPort  int
+	AttachMWAPIKey string
+
 	// Computed paths
 	MATLABCommand string
 	DataDir       string // ~/.matlab/MWI
+}
+
+// IsAttachMode returns true when the proxy should connect to an existing
+// MATLAB Embedded Connector rather than spawning a new MATLAB process.
+func (c *Config) IsAttachMode() bool {
+	return c.AttachECPort > 0 && c.AttachMWAPIKey != ""
 }
 
 func Load() (*Config, error) {
@@ -96,6 +106,8 @@ func Load() (*Config, error) {
 		MATLABStartupScript: GetEnv(EnvMATLABStartupScript, ""),
 		EnableSimulink:      GetEnvBool(EnvEnableSimulink, false),
 		ProfileStartup:      GetEnvBool(EnvProfileStartup, false),
+		AttachECPort:        GetEnvInt(EnvAttachECPort, 0),
+		AttachMWAPIKey:      GetEnv(EnvAttachMWAPIKey, ""),
 	}
 
 	if err := cfg.resolveCustomHTTPHeaders(); err != nil {

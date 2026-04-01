@@ -201,25 +201,32 @@
         var controlsEl = document.querySelector("#overlay-body .controls");
         if (controlsEl) {
             var licType = licensing.type || "";
+            var isAttach = config.attachMode;
             var buttons = "";
             if (!licType) {
                 buttons += '<button class="btn btn-primary" onclick="showLicensing()">Configure License</button>';
             } else {
                 if (status === "down") {
-                    buttons += '<button class="btn btn-primary" onclick="startMatlab()">Start MATLAB</button>';
+                    buttons += '<button class="btn btn-primary" onclick="startMatlab()">' + (isAttach ? 'Reconnect' : 'Start MATLAB') + '</button>';
                 }
                 if (status === "up") {
-                    buttons += '<button class="btn btn-primary" onclick="restartMatlab()">Restart MATLAB</button>';
-                    buttons += '<button class="btn btn-danger" onclick="stopMatlab()">Stop MATLAB</button>';
+                    if (isAttach) {
+                        buttons += '<button class="btn btn-danger" onclick="stopMatlab()">Disconnect</button>';
+                    } else {
+                        buttons += '<button class="btn btn-primary" onclick="restartMatlab()">Restart MATLAB</button>';
+                        buttons += '<button class="btn btn-danger" onclick="stopMatlab()">Stop MATLAB</button>';
+                    }
                 }
                 if (status === "starting") {
-                    buttons += '<button class="btn btn-danger" onclick="stopMatlab()" disabled>Stop MATLAB</button>';
+                    buttons += '<button class="btn btn-danger" onclick="stopMatlab()" disabled>' + (isAttach ? 'Disconnect' : 'Stop MATLAB') + '</button>';
                 }
-                if (status === "stopping") {
+                if (status === "stopping" && !isAttach) {
                     buttons += '<button class="btn btn-primary" onclick="restartMatlab()">Restart MATLAB</button>';
                 }
-                buttons += '<button class="btn btn-secondary" onclick="showLicensing()">Change License</button>';
-                buttons += '<button class="btn btn-warning" onclick="removeLicense()">Sign Out</button>';
+                if (!isAttach) {
+                    buttons += '<button class="btn btn-secondary" onclick="showLicensing()">Change License</button>';
+                    buttons += '<button class="btn btn-warning" onclick="removeLicense()">Sign Out</button>';
+                }
             }
             buttons += '<button class="btn btn-danger" onclick="confirmShutdown()">Shutdown</button>';
             controlsEl.innerHTML = buttons;

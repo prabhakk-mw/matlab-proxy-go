@@ -111,6 +111,28 @@ func (ec *EmbeddedConnector) GetBusyStatus() (BusyStatus, error) {
 	return "", fmt.Errorf("no status in response")
 }
 
+// Eval sends MATLAB code to be evaluated via the Embedded Connector.
+func (ec *EmbeddedConnector) Eval(mcode string) error {
+	uuid := generateUUID()
+	payload := map[string]interface{}{
+		"uuid": uuid,
+		"messages": map[string]interface{}{
+			"Eval": []map[string]interface{}{
+				{"mcode": mcode, "uuid": uuid},
+			},
+		},
+		"computeToken": map[string]string{
+			"computeSessionId": "unused",
+		},
+	}
+	resp, err := ec.postJSON("/messageservice/json/secure", payload)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
 // SendExit sends an exit command to MATLAB via the Embedded Connector.
 func (ec *EmbeddedConnector) SendExit() error {
 	uuid := generateUUID()

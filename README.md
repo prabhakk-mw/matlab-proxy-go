@@ -13,6 +13,7 @@ This project is a from-scratch rewrite of the original Python package. It produc
 
 Key features:
 - All three licensing types: existing license, Network License Manager (NLM), MathWorks Online License (MHLM)
+- **Attach mode:** connect to an already-running MATLAB session without spawning a new one
 - Token-based authentication with port-scoped session cookies
 - Concurrent browser session protection with automatic crash recovery
 - WebSocket proxy for MATLAB's Embedded Connector
@@ -115,13 +116,29 @@ matlab-proxy
 
 The server prints an access URL on startup. Open it in your browser.
 
+### Attach to a Running MATLAB Session
+
+You can connect matlab-proxy to a MATLAB session that is already running, instead of having it start a new one.
+
+**Step 1:** In your running MATLAB, run the setup script:
+```matlab
+run('/path/to/matlab-proxy-go/scripts/enable_connect.m')
+```
+
+**Step 2:** Start the proxy with the printed connection info:
+```bash
+matlab-proxy --ec-port <port> --mwapikey <key>
+```
+
+See [Attach Mode](docs/usage.md#attach-mode) for details and known limitations.
+
 ## Documentation
 
 | Document | Description |
 |---|---|
 | [Architecture](docs/architecture.md) | System design, component map, request flows |
 | [Installation](docs/installation.md) | Building from source, cross-compilation, Docker |
-| [Usage](docs/usage.md) | Configuration, environment variables, CLI flags |
+| [Usage](docs/usage.md) | Configuration, environment variables, CLI flags, attach mode |
 | [Web Terminal](docs/terminal.md) | Built-in browser terminal for shell access |
 | [Differences from matlab-proxy](docs/differences.md) | What changed, what was removed, what was added |
 | [Releasing](docs/releasing.md) | Version strategy, tagging, pre-releases |

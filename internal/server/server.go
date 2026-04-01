@@ -77,22 +77,39 @@ func New(cfg *config.Config, logger *slog.Logger) (*Server, error) {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	// Initialize licensing
-	if err := s.licensing.Init(); err != nil {
-		s.logger.Warn("licensing initialization error", "error", err)
-	}
+	if s.cfg.IsAttachMode() {
+		// Attach mode — connect to an existing MATLAB Embedded Connector.
+		// Mark licensing as "existing" since the MATLAB is already running
+		// and licensed. Without this, the frontend shows the licensing page
+		// and the user could inadvertently start a new MATLAB session.
+		_ = s.licensing.SetLicensing(&licensing.Info{Type: licensing.TypeExisting})
+		s.logger.Info("attach mode: connecting to existing MATLAB EC",
+			"port", s.cfg.AttachECPort,
+		)
+		go func() {
+			if err := s.matlab.Attach(s.cfg.AttachECPort, s.cfg.AttachMWAPIKey); err != nil {
+				s.logger.Error("failed to attach to MATLAB", "error", err)
+			}
+		}()
+	} else {
+		// Normal mode — manage MATLAB lifecycle
+		// Initialize licensing
+		if err := s.licensing.Init(); err != nil {
+			s.logger.Warn("licensing initialization error", "error", err)
+		}
 
-	// If already licensed, start MATLAB
-	if s.licensing.IsLicensed() {
-		// Set up MHLM env vars before starting (access token is short-lived)
-		if err := s.prepareMATLABEnv(); err != nil {
-			s.logger.Error("failed to prepare MATLAB environment", "error", err)
-		} else {
-			go func() {
-				if err := s.matlab.Start(false); err != nil {
-					s.logger.Error("failed to start MATLAB", "error", err)
-				}
-			}()
+		// If already licensed, start MATLAB
+		if s.licensing.IsLicensed() {
+			// Set up MHLM env vars before starting (access token is short-lived)
+			if err := s.prepareMATLABEnv(); err != nil {
+				s.logger.Error("failed to prepare MATLAB environment", "error", err)
+			} else {
+				go func() {
+					if err := s.matlab.Start(false); err != nil {
+						s.logger.Error("failed to start MATLAB", "error", err)
+					}
+				}()
+			}
 		}
 	}
 
@@ -161,14 +178,19 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// Clean up server info file
 	s.removeServerInfoFile()
 
-	// Stop MATLAB gracefully first (sends exit via EC), then force if needed
-	if err := s.matlab.Stop(false); err != nil {
-		s.logger.Warn("graceful MATLAB stop failed, forcing", "error", err)
-		_ = s.matlab.Stop(true)
-	}
+	if s.cfg.IsAttachMode() {
+		// Attach mode — just disconnect, don't terminate MATLAB
+		_ = s.matlab.Stop(false)
+	} else {
+		// Stop MATLAB gracefully first (sends exit via EC), then force if needed
+		if err := s.matlab.Stop(false); err != nil {
+			s.logger.Warn("graceful MATLAB stop failed, forcing", "error", err)
+			_ = s.matlab.Stop(true)
+		}
 
-	// Clean up any remaining MATLAB session files (connector.securePort, scripts, etc.)
-	s.matlab.CleanupLogsDir()
+		// Clean up any remaining MATLAB session files (connector.securePort, scripts, etc.)
+		s.matlab.CleanupLogsDir()
+	}
 
 	// Then stop HTTP server
 	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -365,6 +387,17 @@ func (s *Server) prepareMATLABEnv() error {
 }
 
 func (s *Server) handleStartMATLAB(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.IsAttachMode() {
+		// In attach mode, re-attach to the EC
+		go func() {
+			if err := s.matlab.Attach(s.cfg.AttachECPort, s.cfg.AttachMWAPIKey); err != nil {
+				s.logger.Error("failed to re-attach to MATLAB", "error", err)
+			}
+		}()
+		writeJSON(w, http.StatusOK, map[string]string{"status": "starting"})
+		return
+	}
+
 	if !s.licensing.IsLicensed() {
 		http.Error(w, "MATLAB is not licensed", http.StatusBadRequest)
 		return
@@ -595,6 +628,7 @@ func (s *Server) buildTemplateData(r *http.Request) TemplateData {
 		ConcurrencyEnabled: s.session.ConcurrencyEnabled(),
 		MHLMLoginURL:      mhlmOrigin + "/embedded-login/v2/login.html",
 		MHLMLoginOrigin:   mhlmOrigin,
+		AttachMode:        s.cfg.IsAttachMode(),
 	}
 }
 

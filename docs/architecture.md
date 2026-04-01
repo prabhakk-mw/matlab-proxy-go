@@ -6,7 +6,7 @@ This document describes the internal architecture of matlab-proxy-go.
 
 matlab-proxy-go is an HTTP server that sits between a web browser and a MATLAB process. It:
 
-1. Manages the MATLAB process lifecycle (start, stop, restart)
+1. Manages the MATLAB process lifecycle (start, stop, restart) — or connects to an already-running MATLAB in **attach mode**
 2. Handles licensing (three types)
 3. Serves a web UI for status and control
 4. Proxies HTTP and WebSocket traffic to MATLAB's Embedded Connector
@@ -72,8 +72,8 @@ matlab-proxy-go/
 │   │
 │   ├── matlab/
 │   │   ├── state.go                 Status and BusyStatus type definitions
-│   │   ├── process.go               MATLAB process lifecycle (start/stop/restart), PTY, env setup
-│   │   ├── connector.go             Embedded Connector communication (ping, busy, exit)
+│   │   ├── process.go               MATLAB process lifecycle (start/stop/restart/attach), PTY, env setup
+│   │   ├── connector.go             Embedded Connector communication (ping, busy, eval, exit)
 │   │   ├── pty_unix.go              PTY allocation for POSIX systems (MATLAB requires a PTY as stdin)
 │   │   ├── pty_windows.go           No-op PTY stub for Windows
 │   │   └── scripts/                 Embedded MATLAB scripts (startup.m, evaluateUserMatlabCode.m)
@@ -106,6 +106,9 @@ matlab-proxy-go/
 │       ├── templates/index.html     Server-rendered UI with HTML templates
 │       └── static/                  CSS, JavaScript, icons (embedded in binary)
 │
+├── scripts/
+│   └── enable_connect.m             MATLAB script to prepare a session for attach mode
+│
 ├── docs/                            Documentation
 ├── go.mod
 └── go.sum
@@ -131,7 +134,11 @@ The `Middleware()` function returns a standard `http.Handler` middleware compati
 
 ### MATLAB Process (`internal/matlab`)
 
-The process manager implements a state machine:
+The process manager operates in two modes: **normal mode** (spawns and owns MATLAB) and **attach mode** (connects to an existing MATLAB).
+
+#### Normal Mode
+
+State machine:
 
 ```
      Start()              EC ready
@@ -166,7 +173,38 @@ down --------> starting ----------> up
 - `matlab_scripts/` directory is removed (extracted startup scripts)
 - MATLAB log files are preserved for debugging
 
-The `EmbeddedConnector` type handles all communication with MATLAB's built-in HTTP server, including ping, busy status queries, and exit commands. It injects the `MWAPIKEY` as an HTTP header on all requests to the EC.
+#### Attach Mode
+
+In attach mode, the proxy connects to an Embedded Connector that is already running inside an existing MATLAB session. The user provides the EC port and API key (obtained by running `scripts/enable_connect.m` in MATLAB).
+
+```
+     Attach()             EC ping OK
+down --------> starting ----------> up
+  ^                |                |
+  |    Stop()      |    Stop()      |
+  | (disconnect)   | (disconnect)   |
+  +----------------+----------------+
+```
+
+**Attach flow:**
+1. Set state to `starting`, mark process as `attached`
+2. Create an `EmbeddedConnector` with the provided port and API key
+3. Ping the EC with a 30-second timeout to verify connectivity
+4. Set state to `up`
+5. Enter health monitoring loop: poll busy status every 1 second; after 5 consecutive ping failures, set state to `down` (MATLAB exited externally)
+
+**Stop (disconnect) flow:**
+1. Cancel the monitoring context
+2. Wait for the monitoring goroutine to finish
+3. Set state to `down`
+
+The proxy never sends `exit` to the EC or kills the MATLAB process in attach mode. The EC and MATLAB continue running after disconnect, allowing the user to reconnect later with the same port and key.
+
+**Licensing:** Automatically set to "Existing License" in attach mode since the MATLAB is already running with a valid license.
+
+**UI:** In attach mode, the frontend shows "Disconnect" / "Reconnect" instead of "Stop MATLAB" / "Start MATLAB", and hides licensing controls.
+
+The `EmbeddedConnector` type handles all communication with MATLAB's built-in HTTP server, including ping, busy status queries, eval, and exit commands. It injects the `MWAPIKEY` as an HTTP header on all requests to the EC.
 
 ### Licensing (`internal/licensing`)
 

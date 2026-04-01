@@ -95,17 +95,25 @@
                     <button class="btn btn-primary" onclick="startMatlab()">Start MATLAB</button>
                     {{end}}
                     {{if eq .MATLABStatus "up"}}
+                    {{if .AttachMode}}
+                    <button class="btn btn-danger" onclick="stopMatlab()">Disconnect</button>
+                    {{else}}
                     <button class="btn btn-primary" onclick="restartMatlab()">Restart MATLAB</button>
                     <button class="btn btn-danger" onclick="stopMatlab()">Stop MATLAB</button>
                     {{end}}
+                    {{end}}
                     {{if eq .MATLABStatus "starting"}}
-                    <button class="btn btn-danger" onclick="stopMatlab()" disabled>Stop MATLAB</button>
+                    <button class="btn btn-danger" onclick="stopMatlab()" disabled>{{if .AttachMode}}Disconnect{{else}}Stop MATLAB{{end}}</button>
                     {{end}}
                     {{if eq .MATLABStatus "stopping"}}
+                    {{if not .AttachMode}}
                     <button class="btn btn-primary" onclick="restartMatlab()">Restart MATLAB</button>
                     {{end}}
+                    {{end}}
+                    {{if not .AttachMode}}
                     <button class="btn btn-secondary" onclick="showLicensing()">Change License</button>
                     <button class="btn btn-warning" onclick="removeLicense()">Sign Out</button>
+                    {{end}}
                 {{end}}
                 {{if .ShowShutdownBtn}}
                 <button class="btn btn-danger" onclick="confirmShutdown()">Shutdown</button>
@@ -247,7 +255,8 @@
             concurrencyEnabled: {{.ConcurrencyEnabled}},
             terminalEnabled: {{.TerminalEnabled}},
             mhlmLoginOrigin: "{{.MHLMLoginOrigin}}",
-            matlabVersion: "{{.MATLABVersion}}"
+            matlabVersion: "{{.MATLABVersion}}",
+            attachMode: {{.AttachMode}}
         };
         init();
     </script>

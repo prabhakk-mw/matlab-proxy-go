@@ -32,6 +32,10 @@ const (
 	EnvEnableSimulink      = "MWI_ENABLE_SIMULINK"
 	EnvProfileStartup      = "MWI_PROFILE_MATLAB_STARTUP"
 	EnvLicModeOverride     = "MWI_LICMODE_OVERRIDE"
+
+	// Attach mode — connect to an existing MATLAB Embedded Connector
+	EnvAttachECPort   = "MWI_ATTACH_EC_PORT"
+	EnvAttachMWAPIKey = "MWI_ATTACH_MWAPIKEY"
 )
 
 func GetEnv(key, fallback string) string {
