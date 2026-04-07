@@ -236,14 +236,26 @@ func (s *Server) setupRoutes() http.Handler {
 		// Serve the frontend UI
 		r.Get("/", s.handleIndex)
 
-		// Static files
+		// Static files — serve from embedded FS, fall through to EC proxy if not found.
 		staticContent, _ := fs.Sub(staticFS, "static")
-		fileServer := http.FileServer(http.FS(staticContent))
-		stripPrefix := base + "/static/"
-		if base == "/" {
-			stripPrefix = "/static/"
-		}
-		r.Handle("/static/*", http.StripPrefix(stripPrefix, fileServer))
+		r.HandleFunc("/static/*", func(w http.ResponseWriter, r *http.Request) {
+			// Strip the prefix to get the path within the static FS.
+			trimmed := strings.TrimPrefix(r.URL.Path, base+"/static/")
+			if base == "/" {
+				trimmed = strings.TrimPrefix(r.URL.Path, "/static/")
+			}
+			// Check if the file exists in the embedded FS.
+			if _, err := fs.Stat(staticContent, trimmed); err == nil {
+				stripPrefix := base + "/static/"
+				if base == "/" {
+					stripPrefix = "/static/"
+				}
+				http.StripPrefix(stripPrefix, http.FileServer(http.FS(staticContent))).ServeHTTP(w, r)
+				return
+			}
+			// Not found in embedded FS — forward to Embedded Connector.
+			s.handleMATLABProxy(w, r)
+		})
 
 		// Catch-all: proxy to MATLAB Embedded Connector (auth required)
 		r.HandleFunc("/*", s.handleMATLABProxy)
