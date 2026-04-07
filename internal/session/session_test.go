@@ -136,10 +136,12 @@ func TestIdleTimeout_Disabled(t *testing.T) {
 }
 
 func TestIdleTimeout_Reset(t *testing.T) {
-	m := NewManager(1, testLogger())
+	m := NewManager(2, testLogger())
 
-	// Wait a bit so countdown decrements
-	time.Sleep(2 * time.Second)
+	// Wait so remaining time drops well below the full 120s. Using a 2-minute
+	// timeout ensures a large gap between before and the reset value, so a
+	// single ticker tick after reset cannot make after == before.
+	time.Sleep(5 * time.Second)
 
 	before := m.IdleTimeRemaining()
 	m.ResetIdleTimer()
